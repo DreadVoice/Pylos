@@ -50,14 +50,12 @@ class InvoiceClientIT {
                 List.of(new InvoiceItem("Logo design", "Final artwork", "1", new Money("USD", "250.00")))
         );
 
-        InvoiceSummary draft = invoiceClient.createDraft(request);
-        assertThat(draft.id()).isNotBlank();
-        assertThat(draft.status()).isEqualTo("DRAFT");
+        InvoiceSummary sent = invoiceClient.createAndSend(
+                request,
+                new InvoiceNotification("Invoice from Pylos", "Thanks for your order", false, true),
+                "it-" + invoiceNumber);
 
-        invoiceClient.send(draft.id(), new InvoiceNotification(
-                "Invoice from Pylos", "Thanks for your order", false, true));
-
-        InvoiceSummary sent = invoiceClient.get(draft.id());
+        assertThat(sent.id()).isNotBlank();
         assertThat(sent.status()).isIn("SENT", "UNPAID", "PAYMENT_PENDING");
         assertThat(sent.amount().value()).isEqualTo("250.00");
     }

@@ -8,6 +8,10 @@ spring:
   jackson:
     property-naming-strategy: SNAKE_CASE
     default-property-inclusion: non_null
+  http:
+    client:
+      connect-timeout: 5s
+      read-timeout: 15s
 
 server:
   port: 8080

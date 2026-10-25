@@ -90,6 +90,27 @@ public class InvoiceClient {
                 .toBodilessEntity());
     }
 
+    public InvoiceSummary createAndSend(InvoiceDraftRequest request,
+                                        InvoiceNotification notification,
+                                        String requestId) {
+        InvoiceSummary draft = createDraft(request, requestId);
+        try {
+            send(draft.id(), notification, sendRequestId(requestId));
+        } catch (RuntimeException sendFailure) {
+            discardDraft(draft.id(), sendFailure);
+            throw sendFailure;
+        }
+        return get(draft.id());
+    }
+
+    public void delete(String invoiceId) {
+        withToken(token -> restClient.delete()
+                .uri(INVOICES_PATH + "/{invoiceId}", invoiceId)
+                .headers(headers -> headers.setBearerAuth(token))
+                .retrieve()
+                .toBodilessEntity());
+    }
+
     public void remind(String invoiceId, InvoiceNotification notification) {
         withToken(token -> restClient.post()
                 .uri(INVOICES_PATH + "/{invoiceId}/remind", invoiceId)
@@ -122,6 +143,18 @@ public class InvoiceClient {
             throw new PayPalApiException("PayPal returned no invoice number", null, null, null);
         }
         return invoiceNumber.invoiceNumber();
+    }
+
+    private void discardDraft(String invoiceId, RuntimeException sendFailure) {
+        try {
+            delete(invoiceId);
+        } catch (RuntimeException deleteFailure) {
+            sendFailure.addSuppressed(deleteFailure);
+        }
+    }
+
+    private String sendRequestId(String requestId) {
+        return StringUtils.hasText(requestId) ? requestId + "-send" : null;
     }
 
     private <T> T withToken(Function<String, T> call) {

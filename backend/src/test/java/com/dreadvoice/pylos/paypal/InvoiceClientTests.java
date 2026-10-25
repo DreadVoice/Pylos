@@ -190,6 +190,81 @@ class InvoiceClientTests {
     }
 
     @Test
+    void createAndSendCreatesSendsAndReturnsFinalInvoice() {
+        server.expect(once(), requestTo(BASE_URL + "/v2/invoicing/invoices"))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(header("PayPal-Request-Id", "action-42"))
+                .andRespond(withStatus(HttpStatus.CREATED)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body("{\"id\":\"INV2-NEW\",\"status\":\"DRAFT\"}"));
+        server.expect(once(), requestTo(BASE_URL + "/v2/invoicing/invoices/INV2-NEW/send"))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(header("PayPal-Request-Id", "action-42-send"))
+                .andRespond(withStatus(HttpStatus.ACCEPTED));
+        server.expect(once(), requestTo(BASE_URL + "/v2/invoicing/invoices/INV2-NEW"))
+                .andExpect(method(HttpMethod.GET))
+                .andRespond(withSuccess("{\"id\":\"INV2-NEW\",\"status\":\"SENT\"}",
+                        MediaType.APPLICATION_JSON));
+
+        InvoiceSummary sent = invoiceClient.createAndSend(draftRequest(), notification(), "action-42");
+
+        assertThat(sent.status()).isEqualTo("SENT");
+        server.verify();
+    }
+
+    @Test
+    void createAndSendDeletesTheDraftWhenSendFails() {
+        server.expect(once(), requestTo(BASE_URL + "/v2/invoicing/invoices"))
+                .andExpect(method(HttpMethod.POST))
+                .andRespond(withStatus(HttpStatus.CREATED)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body("{\"id\":\"INV2-ORPHAN\",\"status\":\"DRAFT\"}"));
+        server.expect(once(), requestTo(BASE_URL + "/v2/invoicing/invoices/INV2-ORPHAN/send"))
+                .andExpect(method(HttpMethod.POST))
+                .andRespond(withStatus(HttpStatus.INTERNAL_SERVER_ERROR));
+        server.expect(once(), requestTo(BASE_URL + "/v2/invoicing/invoices/INV2-ORPHAN"))
+                .andExpect(method(HttpMethod.DELETE))
+                .andRespond(withStatus(HttpStatus.NO_CONTENT));
+
+        assertThatThrownBy(() -> invoiceClient.createAndSend(draftRequest(), notification(), null))
+                .isInstanceOf(PayPalApiException.class);
+
+        server.verify();
+    }
+
+    @Test
+    void createAndSendKeepsSendFailureWhenCleanupAlsoFails() {
+        server.expect(once(), requestTo(BASE_URL + "/v2/invoicing/invoices"))
+                .andRespond(withStatus(HttpStatus.CREATED)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body("{\"id\":\"INV2-ORPHAN\",\"status\":\"DRAFT\"}"));
+        server.expect(once(), requestTo(BASE_URL + "/v2/invoicing/invoices/INV2-ORPHAN/send"))
+                .andRespond(withStatus(HttpStatus.INTERNAL_SERVER_ERROR));
+        server.expect(once(), requestTo(BASE_URL + "/v2/invoicing/invoices/INV2-ORPHAN"))
+                .andExpect(method(HttpMethod.DELETE))
+                .andRespond(withStatus(HttpStatus.CONFLICT));
+
+        assertThatThrownBy(() -> invoiceClient.createAndSend(draftRequest(), notification(), null))
+                .isInstanceOf(PayPalApiException.class)
+                .hasMessageContaining("500")
+                .satisfies(thrown -> assertThat(thrown.getSuppressed()).hasSize(1));
+
+        server.verify();
+    }
+
+    @Test
+    void deleteRemovesDraftInvoice() {
+        server.expect(once(), requestTo(BASE_URL + "/v2/invoicing/invoices/INV2-ABC"))
+                .andExpect(method(HttpMethod.DELETE))
+                .andExpect(header(HttpHeaders.AUTHORIZATION, "Bearer token-one"))
+                .andRespond(withStatus(HttpStatus.NO_CONTENT));
+
+        invoiceClient.delete("INV2-ABC");
+
+        server.verify();
+    }
+
+    @Test
     void retriesOnceWithFreshTokenAfterUnauthorized() {
         when(authClient.accessToken()).thenReturn("stale-token", "fresh-token");
 
