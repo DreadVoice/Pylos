@@ -7,4 +7,8 @@ public record InvoiceList(
         Integer totalItems,
         Integer totalPages
 ) {
+
+    public InvoiceList {
+        items = items == null ? List.of() : List.copyOf(items);
+    }
 }

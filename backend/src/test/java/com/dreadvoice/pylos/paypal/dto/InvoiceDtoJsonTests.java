@@ -94,6 +94,18 @@ class InvoiceDtoJsonTests {
     }
 
     @Test
+    void defaultsMissingInvoiceListItemsToEmptyList() throws Exception {
+        String json = """
+                { "total_items": 0, "total_pages": 0, "links": [] }
+                """;
+
+        InvoiceList list = objectMapper.readValue(json, InvoiceList.class);
+
+        assertThat(list.items()).isEmpty();
+        assertThat(list.totalItems()).isZero();
+    }
+
+    @Test
     void deserializesInvoiceList() throws Exception {
         String json = """
                 {
