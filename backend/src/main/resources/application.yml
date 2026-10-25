@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: pylos
+  config:
+    import: optional:file:./.env[.properties]
+  profiles:
+    default: local
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    default-property-inclusion: non_null
+
+server:
+  port: 8080
+
+paypal:
+  client-id: ${PAYPAL_CLIENT_ID}
+  client-secret: ${PAYPAL_CLIENT_SECRET}
+  base-url: ${PAYPAL_BASE_URL:https://api-m.sandbox.paypal.com}
+  webhook-id: ${PAYPAL_WEBHOOK_ID:}
+
+logging:
+  level:
+    com.dreadvoice.pylos: INFO
