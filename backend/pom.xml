@@ -19,6 +19,8 @@
 
     <properties>
         <java.version>21</java.version>
+        <langchain4j.version>1.0.0</langchain4j.version>
+        <langchain4j-gemini.version>1.0.0-beta5</langchain4j-gemini.version>
     </properties>
 
     <dependencies>
@@ -38,6 +40,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-configuration-processor</artifactId>
             <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-google-ai-gemini</artifactId>
+            <version>${langchain4j-gemini.version}</version>
         </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>

@@ -27,6 +27,20 @@ class PayPalWriteAccessGuardTests {
     }
 
     @Test
+    void neitherAgentToolCanReachTheInvoiceClient() {
+        assertThat(constructorParameterTypes(com.dreadvoice.pylos.agent.ProposeTools.class))
+                .noneMatch(InvoiceClient.class::isAssignableFrom);
+        assertThat(constructorParameterTypes(com.dreadvoice.pylos.agent.ReadTools.class))
+                .noneMatch(InvoiceClient.class::isAssignableFrom);
+    }
+
+    @Test
+    void proposeToolsCannotReachThePayPalPackageAtAll() {
+        assertThat(constructorParameterTypes(com.dreadvoice.pylos.agent.ProposeTools.class))
+                .noneMatch(type -> type.getName().startsWith(PAYPAL_PACKAGE));
+    }
+
+    @Test
     void neitherTheValidatorNorTheServiceCanReachPayPalDirectly() {
         assertThat(constructorParameterTypes(ActionValidator.class))
                 .noneMatch(type -> type.getName().startsWith(PAYPAL_PACKAGE));

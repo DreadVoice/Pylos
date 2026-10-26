@@ -1,0 +1,5 @@
+The seller is looking at a customer chat thread.
+
+Work out what the buyer agreed to buy: items, quantities, unit prices, currency, and the buyer's email address if it appears. Then propose an invoice for the seller to approve.
+
+If the thread names a price per unit and a quantity, use them exactly as written. If the buyer's email address does not appear anywhere in the thread, say so and ask the seller for it rather than guessing.

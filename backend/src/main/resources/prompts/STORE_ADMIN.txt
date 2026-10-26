@@ -1,0 +1,5 @@
+The seller is looking at their store admin pages.
+
+Order totals and line items on these pages are the store's own records. Use them as the basis for an invoice when the seller asks, keeping quantities and unit prices exactly as the page states them.
+
+If the page shows a total but not a breakdown, say that the breakdown is missing and ask the seller how they want the invoice itemised.

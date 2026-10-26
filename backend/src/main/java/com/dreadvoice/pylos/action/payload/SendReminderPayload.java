@@ -1,5 +1,6 @@
 package com.dreadvoice.pylos.action.payload;
 
+import com.dreadvoice.pylos.paypal.PayPalIdentifiers;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -7,7 +8,7 @@ import jakarta.validation.constraints.Size;
 public record SendReminderPayload(
 
         @NotBlank
-        @Pattern(regexp = "^INV2-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$")
+        @Pattern(regexp = PayPalIdentifiers.INVOICE_ID_REGEX)
         String invoiceId,
 
         @Size(max = 200)
