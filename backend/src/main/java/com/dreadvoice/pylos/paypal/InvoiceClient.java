@@ -5,6 +5,7 @@ import com.dreadvoice.pylos.paypal.dto.InvoiceList;
 import com.dreadvoice.pylos.paypal.dto.InvoiceNotification;
 import com.dreadvoice.pylos.paypal.dto.InvoiceNumber;
 import com.dreadvoice.pylos.paypal.dto.InvoiceSummary;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -140,7 +141,8 @@ public class InvoiceClient {
                 .retrieve()
                 .body(InvoiceNumber.class));
         if (invoiceNumber == null || !StringUtils.hasText(invoiceNumber.invoiceNumber())) {
-            throw new PayPalApiException("PayPal returned no invoice number", null, null, null);
+            throw new PayPalApiException("PayPal returned no invoice number",
+                    HttpStatus.BAD_GATEWAY, null, null);
         }
         return invoiceNumber.invoiceNumber();
     }
