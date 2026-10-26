@@ -92,7 +92,8 @@ class ActionExecutorTests {
         assertThat(resultReference).isEqualTo("INV2-7YQ5-K2GD-GDGY-962L");
 
         ArgumentCaptor<InvoiceNotification> notification = ArgumentCaptor.forClass(InvoiceNotification.class);
-        verify(invoiceClient).remind(eq("INV2-7YQ5-K2GD-GDGY-962L"), notification.capture());
+        verify(invoiceClient).remind(
+                eq("INV2-7YQ5-K2GD-GDGY-962L"), notification.capture(), eq("action-7"));
         assertThat(notification.getValue().subject()).isEqualTo("Still unpaid");
         assertThat(notification.getValue().note()).isEqualTo("Gentle nudge");
         verify(invoiceClient, never()).createAndSend(any(), any(), any());

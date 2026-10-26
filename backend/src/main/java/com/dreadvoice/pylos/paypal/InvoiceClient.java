@@ -113,9 +113,18 @@ public class InvoiceClient {
     }
 
     public void remind(String invoiceId, InvoiceNotification notification) {
+        remind(invoiceId, notification, null);
+    }
+
+    public void remind(String invoiceId, InvoiceNotification notification, String requestId) {
         withToken(token -> restClient.post()
                 .uri(INVOICES_PATH + "/{invoiceId}/remind", invoiceId)
-                .headers(headers -> headers.setBearerAuth(token))
+                .headers(headers -> {
+                    headers.setBearerAuth(token);
+                    if (StringUtils.hasText(requestId)) {
+                        headers.set(REQUEST_ID_HEADER, requestId);
+                    }
+                })
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(notification)
                 .retrieve()

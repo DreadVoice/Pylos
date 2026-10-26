@@ -1,9 +1,9 @@
 spring:
   datasource:
-    url: ${DATABASE_URL}
+    url: ${POSTGRES_URL}
     driver-class-name: org.postgresql.Driver
-    username: ${DATABASE_USERNAME}
-    password: ${DATABASE_PASSWORD}
+    username: ${POSTGRES_USERNAME}
+    password: ${POSTGRES_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: validate

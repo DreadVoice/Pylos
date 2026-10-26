@@ -10,6 +10,7 @@ import com.dreadvoice.pylos.context.PageContext;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
@@ -29,6 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(AssistController.class)
 @Import(ActionViewMapper.class)
+@AutoConfigureMockMvc(addFilters = false)
 class AssistControllerTests {
 
     private static final UUID ACTION_ID = UUID.fromString("11111111-2222-3333-4444-555555555555");

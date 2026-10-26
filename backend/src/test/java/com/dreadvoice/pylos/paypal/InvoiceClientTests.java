@@ -169,6 +169,29 @@ class InvoiceClientTests {
     }
 
     @Test
+    void remindSendsAnIdempotencyKeyWhenProvided() {
+        server.expect(once(), requestTo(BASE_URL + "/v2/invoicing/invoices/INV2-ABC/remind"))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(header("PayPal-Request-Id", "action-77"))
+                .andRespond(withStatus(HttpStatus.NO_CONTENT));
+
+        invoiceClient.remind("INV2-ABC", notification(), "action-77");
+
+        server.verify();
+    }
+
+    @Test
+    void remindOmitsTheIdempotencyKeyWhenAbsent() {
+        server.expect(once(), requestTo(BASE_URL + "/v2/invoicing/invoices/INV2-ABC/remind"))
+                .andExpect(headerDoesNotExist("PayPal-Request-Id"))
+                .andRespond(withStatus(HttpStatus.NO_CONTENT));
+
+        invoiceClient.remind("INV2-ABC", notification());
+
+        server.verify();
+    }
+
+    @Test
     void cancelPostsNotificationToCancelEndpoint() {
         server.expect(once(), requestTo(BASE_URL + "/v2/invoicing/invoices/INV2-ABC/cancel"))
                 .andExpect(method(HttpMethod.POST))

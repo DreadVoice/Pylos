@@ -86,11 +86,14 @@ public class ActionExecutor {
     private String sendReminder(PendingAction action) {
         SendReminderPayload payload = read(action.getPayload(), SendReminderPayload.class);
 
-        invoiceClient.remind(payload.invoiceId(), new InvoiceNotification(
-                payload.subject() == null ? REMINDER_SUBJECT : payload.subject(),
-                payload.note(),
-                false,
-                true));
+        invoiceClient.remind(
+                payload.invoiceId(),
+                new InvoiceNotification(
+                        payload.subject() == null ? REMINDER_SUBJECT : payload.subject(),
+                        payload.note(),
+                        false,
+                        true),
+                action.getIdempotencyKey());
 
         return payload.invoiceId();
     }

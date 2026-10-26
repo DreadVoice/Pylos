@@ -98,6 +98,16 @@ public class ActionService {
         return get(id);
     }
 
+    public List<PendingAction> recoverStrandedApprovals() {
+        List<PendingAction> stranded = repository.findAllByStatusOrderByCreatedAtDesc(ActionStatus.APPROVED);
+        if (stranded.isEmpty()) {
+            return List.of();
+        }
+
+        log.warn("Found {} approved action(s) that never finished executing; resuming them", stranded.size());
+        return stranded.stream().map(this::executeApproved).toList();
+    }
+
     private PendingAction executeApproved(PendingAction approved) {
         try {
             String resultReference = executor.execute(approved);

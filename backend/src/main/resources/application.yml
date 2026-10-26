@@ -17,6 +17,9 @@ server:
   port: 8080
 
 pylos:
+  api:
+    token: ${PYLOS_API_TOKEN:}
+    allowed-origins: ${PYLOS_ALLOWED_ORIGINS:chrome-extension://*}
   llm:
     api-key: ${GEMINI_API_KEY:}
     model-name: ${GEMINI_MODEL:gemini-3.5-flash-lite}
