@@ -2,10 +2,6 @@ package com.dreadvoice.pylos.api;
 
 import com.dreadvoice.pylos.action.ActionService;
 import com.dreadvoice.pylos.action.ActionStatus;
-import com.dreadvoice.pylos.action.PendingAction;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.NullNode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,33 +20,33 @@ import java.util.UUID;
 public class ActionController {
 
     private final ActionService actionService;
-    private final ObjectMapper objectMapper;
+    private final ActionViewMapper actionViewMapper;
 
-    public ActionController(ActionService actionService, ObjectMapper objectMapper) {
+    public ActionController(ActionService actionService, ActionViewMapper actionViewMapper) {
         this.actionService = actionService;
-        this.objectMapper = objectMapper;
+        this.actionViewMapper = actionViewMapper;
     }
 
     @GetMapping
     public List<ActionView> list(@RequestParam(required = false) ActionStatus status) {
-        return actionService.list(status).stream().map(this::toView).toList();
+        return actionService.list(status).stream().map(actionViewMapper::toView).toList();
     }
 
     @GetMapping("/{id}")
     public ActionView get(@PathVariable UUID id) {
-        return toView(actionService.get(id));
+        return actionViewMapper.toView(actionService.get(id));
     }
 
     @PostMapping("/{id}/approve")
     public ResponseEntity<ActionView> approve(@PathVariable UUID id,
                                               @RequestBody(required = false) ApproveActionRequest request) {
         String editedPayload = editedPayload(request);
-        return ResponseEntity.ok(toView(actionService.approve(id, editedPayload)));
+        return ResponseEntity.ok(actionViewMapper.toView(actionService.approve(id, editedPayload)));
     }
 
     @PostMapping("/{id}/reject")
     public ResponseEntity<ActionView> reject(@PathVariable UUID id) {
-        return ResponseEntity.ok(toView(actionService.reject(id)));
+        return ResponseEntity.ok(actionViewMapper.toView(actionService.reject(id)));
     }
 
     private String editedPayload(ApproveActionRequest request) {
@@ -58,26 +54,5 @@ public class ActionController {
             return null;
         }
         return request.payload().toString();
-    }
-
-    private ActionView toView(PendingAction action) {
-        return new ActionView(
-                action.getId(),
-                action.getActionType(),
-                action.getStatus(),
-                action.getSummary(),
-                readPayload(action.getPayload()),
-                action.getResultReference(),
-                action.getErrorMessage(),
-                action.getCreatedAt(),
-                action.getUpdatedAt());
-    }
-
-    private JsonNode readPayload(String payloadJson) {
-        try {
-            return objectMapper.readTree(payloadJson);
-        } catch (JsonProcessingException exception) {
-            return NullNode.getInstance();
-        }
     }
 }

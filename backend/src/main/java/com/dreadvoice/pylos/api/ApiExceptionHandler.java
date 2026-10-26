@@ -3,6 +3,7 @@ package com.dreadvoice.pylos.api;
 import com.dreadvoice.pylos.action.ActionNotFoundException;
 import com.dreadvoice.pylos.action.ActionStateException;
 import com.dreadvoice.pylos.action.ActionValidationException;
+import com.dreadvoice.pylos.agent.LlmNotConfiguredException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -19,6 +20,11 @@ public class ApiExceptionHandler {
     @ExceptionHandler(ActionStateException.class)
     public ProblemDetail handleConflict(ActionStateException exception) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.getMessage());
+    }
+
+    @ExceptionHandler(LlmNotConfiguredException.class)
+    public ProblemDetail handleLlmNotConfigured(LlmNotConfiguredException exception) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, exception.getMessage());
     }
 
     @ExceptionHandler(ActionValidationException.class)

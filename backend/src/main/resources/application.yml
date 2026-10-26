@@ -19,7 +19,7 @@ server:
 pylos:
   llm:
     api-key: ${GEMINI_API_KEY:}
-    model-name: ${GEMINI_MODEL:gemini-3.8-flash}
+    model-name: ${GEMINI_MODEL:gemini-3.5-flash-lite}
     temperature: 0.2
     max-output-tokens: 2048
     timeout: 30s
