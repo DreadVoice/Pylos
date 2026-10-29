@@ -1,4 +1,11 @@
-import { isApiRequest, type ApiRequest, type ApiResult } from "../shared/messages";
+import {
+  isApiRequest,
+  isContextRequest,
+  type ApiRequest,
+  type ApiResult,
+  type ContextResult,
+  type ExtractRequest
+} from "../shared/messages";
 import { apiUrl, describeSettingsProblem, loadSettings } from "../shared/settings";
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -13,14 +20,33 @@ chrome.runtime.onStartup.addListener(() => {
 });
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (!isApiRequest(message)) {
-    return false;
+  if (isApiRequest(message)) {
+    request(message).then(sendResponse, (error: unknown) =>
+      sendResponse({ ok: false, status: 0, error: String(error) } satisfies ApiResult)
+    );
+    return true;
   }
-  request(message).then(sendResponse, (error: unknown) =>
-    sendResponse({ ok: false, status: 0, error: String(error) } satisfies ApiResult)
-  );
-  return true;
+  if (isContextRequest(message)) {
+    readActivePage().then(sendResponse, (error: unknown) =>
+      sendResponse({ supported: false, reason: String(error) } satisfies ContextResult)
+    );
+    return true;
+  }
+  return false;
 });
+
+async function readActivePage(): Promise<ContextResult> {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tab?.id === undefined) {
+    return { supported: false, reason: "No active tab to read." };
+  }
+
+  try {
+    return await chrome.tabs.sendMessage(tab.id, { kind: "pylos.extract" } satisfies ExtractRequest);
+  } catch {
+    return { supported: false, reason: "Pylos does not read this page. Open a supported page." };
+  }
+}
 
 async function request(message: ApiRequest): Promise<ApiResult> {
   const settings = await loadSettings();

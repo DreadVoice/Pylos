@@ -8,6 +8,7 @@ type Manifest = {
   permissions: string[];
   host_permissions: string[];
   background: { service_worker: string; type: string };
+  content_scripts: { matches: string[]; js: string[]; run_at: string }[];
   side_panel: { default_path: string };
   options_page: string;
 };
@@ -33,6 +34,17 @@ describe("manifest", () => {
 
   it("runs the service worker as a module so it can import shared code", () => {
     expect(manifest.background.type).toBe("module");
+  });
+
+  it("injects the content script only on the demo pages", () => {
+    expect(manifest.content_scripts).toHaveLength(1);
+
+    const [script] = manifest.content_scripts;
+    expect(script.js).toEqual(["content.js"]);
+    expect(viteConfig).toContain('content: "src/content/main.ts"');
+    for (const match of script.matches) {
+      expect(match).toMatch(/^https?:\/\/(localhost|127\.0\.0\.1):\d+\/demo\/\*$/);
+    }
   });
 
   it("asks for only the permissions it uses", () => {
