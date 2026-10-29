@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Pylos",
+  "version": "0.1.0",
+  "description": "A copilot that turns seller conversations into PayPal invoices you approve.",
+  "minimum_chrome_version": "114",
+  "permissions": ["sidePanel", "storage", "activeTab"],
+  "host_permissions": [
+    "http://localhost:8080/*",
+    "http://127.0.0.1:8080/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Open Pylos"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "options_page": "options.html"
+}

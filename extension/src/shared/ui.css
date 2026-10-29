@@ -1,0 +1,81 @@
+body {
+    margin: 0;
+    background: #f7f9fb;
+    color: #1f2933;
+    font: 14px/1.5 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+main {
+    padding: 16px;
+}
+
+h1 {
+    margin: 0 0 4px;
+    font-size: 16px;
+}
+
+.lede {
+    margin: 0 0 18px;
+    color: #6b7a8d;
+    font-size: 13px;
+}
+
+label {
+    display: block;
+    margin-bottom: 14px;
+}
+
+label span {
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #dde3ea;
+    border-radius: 6px;
+    font: inherit;
+    box-sizing: border-box;
+}
+
+button {
+    padding: 8px 14px;
+    margin-right: 8px;
+    border: 0;
+    border-radius: 6px;
+    background: #3f6fa8;
+    color: #fff;
+    font: inherit;
+    font-weight: 600;
+}
+
+button:disabled {
+    background: #a9bbd0;
+}
+
+.status {
+    margin-top: 14px;
+    padding: 10px 12px;
+    border: 1px solid #dde3ea;
+    border-radius: 6px;
+    background: #fff;
+    font-size: 13px;
+}
+
+.status.bad {
+    border-color: #e0a0a0;
+    background: #fdf2f2;
+}
+
+.status.good {
+    border-color: #a9d3a0;
+    background: #f3faf1;
+}
+
+.hint {
+    color: #6b7a8d;
+    font-size: 12px;
+}
