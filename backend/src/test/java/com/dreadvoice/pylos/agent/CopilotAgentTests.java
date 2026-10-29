@@ -203,6 +203,16 @@ class CopilotAgentTests {
     }
 
     @Test
+    void substitutesAReadableMessageWhenTheModelSaysNothing() {
+        chatModel.script(text(""));
+
+        AgentResponse response = agent().assist(chatPage("Buyer: two hoodies"), "Invoice this");
+
+        assertThat(response.message()).contains("did not return an answer");
+        assertThat(response.proposedActionIds()).isEmpty();
+    }
+
+    @Test
     void readToolsAreNotCalledUnlessTheModelAsksForThem() {
         chatModel.script(text("Nothing to look up."));
 

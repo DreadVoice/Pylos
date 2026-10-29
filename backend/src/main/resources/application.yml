@@ -22,10 +22,13 @@ pylos:
     allowed-origins: ${PYLOS_ALLOWED_ORIGINS:chrome-extension://*}
   llm:
     api-key: ${GEMINI_API_KEY:}
-    model-name: ${GEMINI_MODEL:gemini-3.5-flash-lite}
+    model-name: ${GEMINI_MODEL:gemini-3.5-flash}
+    fallback-model-name: ${GEMINI_FALLBACK_MODEL:gemini-3.5-flash-lite}
+    max-attempts: 3
+    retry-delay: 1s
     temperature: 0.2
     max-output-tokens: 2048
-    timeout: 30s
+    timeout: 60s
     log-requests-and-responses: false
 
 paypal:

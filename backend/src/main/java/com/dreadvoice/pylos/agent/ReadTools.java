@@ -3,6 +3,7 @@ package com.dreadvoice.pylos.agent;
 import com.dreadvoice.pylos.paypal.InvoiceReader;
 import com.dreadvoice.pylos.paypal.dto.InvoiceList;
 import com.dreadvoice.pylos.paypal.dto.InvoiceSummary;
+import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +25,9 @@ public class ReadTools {
 
     @Tool("List the seller's recent PayPal invoices, newest first. Returns one line per invoice "
             + "with its id, invoice number, status and amount.")
-    public String listRecentInvoices(int pageSize) {
+    public String listRecentInvoices(
+            @P(value = "How many invoices to list, at most 20", required = false)
+            int pageSize) {
         int effectivePageSize = pageSize <= 0 ? 10 : Math.min(pageSize, MAX_PAGE_SIZE);
         log.debug("Listing up to {} invoices", effectivePageSize);
 
@@ -37,7 +40,9 @@ public class ReadTools {
     }
 
     @Tool("Get one PayPal invoice by its invoice id, for example INV2-7YQ5-K2GD-GDGY-962L.")
-    public String getInvoice(String invoiceId) {
+    public String getInvoice(
+            @P("The PayPal invoice id, for example INV2-7YQ5-K2GD-GDGY-962L")
+            String invoiceId) {
         try {
             return describe(invoiceReader.get(invoiceId));
         } catch (IllegalArgumentException exception) {

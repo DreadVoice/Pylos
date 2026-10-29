@@ -11,6 +11,7 @@ import com.dreadvoice.pylos.action.payload.SendInvoicePayload;
 import com.dreadvoice.pylos.action.payload.SendReminderPayload;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,13 +43,22 @@ public class ProposeTools {
 
     @Tool("Propose a PayPal invoice for the seller to review. This does not send anything. "
             + "Amounts must be plain decimal strings such as 250.00. Currency must be USD or INR. "
+            + "The buyer's first and last name are optional; omit them if the conversation does not "
+            + "state them rather than asking the seller for them. "
             + "The seller must approve the proposal before any invoice is sent.")
-    public String proposeInvoice(String recipientEmail,
-                                 String recipientGivenName,
-                                 String recipientSurname,
-                                 String currencyCode,
-                                 String note,
-                                 List<InvoiceLineItem> items) {
+    public String proposeInvoice(
+            @P("The buyer's email address, taken from the conversation")
+            String recipientEmail,
+            @P(value = "The buyer's first name if the conversation states it", required = false)
+            String recipientGivenName,
+            @P(value = "The buyer's last name if the conversation states it", required = false)
+            String recipientSurname,
+            @P("The three letter currency code, either USD or INR")
+            String currencyCode,
+            @P(value = "A short note for the buyer, if one is useful", required = false)
+            String note,
+            @P("The line items, each with a name, a quantity and a unit amount as plain decimal strings")
+            List<InvoiceLineItem> items) {
         SendInvoicePayload payload = new SendInvoicePayload(
                 recipientEmail, recipientGivenName, recipientSurname, currencyCode, note, items);
 
@@ -57,7 +67,13 @@ public class ProposeTools {
 
     @Tool("Propose a payment reminder for an invoice the seller already sent. This does not send "
             + "anything. The seller must approve the proposal before any reminder goes out.")
-    public String proposeReminder(String invoiceId, String subject, String note) {
+    public String proposeReminder(
+            @P("The PayPal invoice id, for example INV2-7YQ5-K2GD-GDGY-962L")
+            String invoiceId,
+            @P(value = "A subject line for the reminder", required = false)
+            String subject,
+            @P(value = "A short note for the buyer", required = false)
+            String note) {
         SendReminderPayload payload = new SendReminderPayload(invoiceId, subject, note);
 
         return propose(ActionType.SEND_REMINDER, payload,

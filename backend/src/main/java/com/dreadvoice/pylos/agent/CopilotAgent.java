@@ -17,6 +17,9 @@ public class CopilotAgent {
 
     private static final Logger log = LoggerFactory.getLogger(CopilotAgent.class);
     private static final String INSTRUCTION_HEADING = "The seller asks:";
+    private static final String NO_REPLY_FALLBACK =
+            "The copilot did not return an answer for this page. Try asking again, "
+                    + "or say what you want invoiced.";
 
     private final ChatModel chatModel;
     private final ReadTools readTools;
@@ -58,7 +61,10 @@ public class CopilotAgent {
             List<java.util.UUID> proposed = tracker.collect();
             log.info("Assist on {} produced {} proposals", sanitized.siteType(), proposed.size());
 
-            return new AgentResponse(message, proposed, sanitized.truncated());
+            return new AgentResponse(
+                    StringUtils.hasText(message) ? message.strip() : NO_REPLY_FALLBACK,
+                    proposed,
+                    sanitized.truncated());
         } finally {
             tracker.collect();
         }
