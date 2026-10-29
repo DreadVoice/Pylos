@@ -9,7 +9,7 @@ export type ApiRequest = {
 
 export type ApiResult =
   | { ok: true; status: number; data: unknown }
-  | { ok: false; status: number; error: string };
+  | { ok: false; status: number; error: string; violations?: string[] };
 
 export type ContextRequest = { kind: "pylos.context" };
 

@@ -73,7 +73,12 @@ async function request(message: ApiRequest): Promise<ApiResult> {
   const data = text === "" ? null : safeParse(text);
 
   if (!response.ok) {
-    return { ok: false, status: response.status, error: describeFailure(response.status, data) };
+    return {
+      ok: false,
+      status: response.status,
+      error: describeFailure(response.status, data),
+      violations: readViolations(data)
+    };
   }
   return { ok: true, status: response.status, data };
 }
@@ -84,6 +89,17 @@ function safeParse(text: string): unknown {
   } catch {
     return text;
   }
+}
+
+function readViolations(data: unknown): string[] | undefined {
+  if (typeof data !== "object" || data === null) {
+    return undefined;
+  }
+  const violations = (data as { violations?: unknown }).violations;
+  if (!Array.isArray(violations)) {
+    return undefined;
+  }
+  return violations.filter((violation): violation is string => typeof violation === "string");
 }
 
 function describeFailure(status: number, data: unknown): string {

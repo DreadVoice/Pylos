@@ -79,3 +79,128 @@ button:disabled {
     color: #6b7a8d;
     font-size: 12px;
 }
+
+textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #dde3ea;
+    border-radius: 6px;
+    font: inherit;
+    box-sizing: border-box;
+    resize: vertical;
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0;
+}
+
+button.ghost {
+    background: #fff;
+    border: 1px solid #dde3ea;
+    color: #1f2933;
+}
+
+.card {
+    margin: 14px 0;
+    padding: 12px 14px;
+    background: #fff;
+    border: 1px solid #dde3ea;
+    border-radius: 8px;
+}
+
+.card header {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.tag {
+    padding: 1px 7px;
+    border-radius: 10px;
+    background: #eef2f6;
+    color: #4a5a6d;
+    font-size: 11px;
+    font-weight: 600;
+    align-self: start;
+}
+
+.tag-executed {
+    background: #e2f3dc;
+    color: #2f6b22;
+}
+
+.tag-failed, .tag-rejected {
+    background: #fbe6e6;
+    color: #8c2f2f;
+}
+
+.item {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
+.item .narrow {
+    width: 76px;
+}
+
+.total {
+    margin-left: auto;
+    font-weight: 600;
+}
+
+.card ul {
+    margin: 6px 0 0;
+    padding-left: 18px;
+}
+
+a {
+    color: #2f5d94;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 12px;
+}
+
+h1, .lede, .hint, .status, .total, .card header b, label span {
+    overflow-wrap: anywhere;
+    min-width: 0;
+}
+
+.tag, .item button {
+    flex: none;
+}
+
+.actions {
+    flex-wrap: wrap;
+}
+
+.actions button {
+    margin-right: 0;
+}
+
+.item {
+    flex-wrap: wrap;
+}
+
+.item input {
+    min-width: 0;
+}
+
+.item > input:first-child {
+    flex: 1 1 110px;
+}
+
+.item .narrow {
+    flex: 0 1 70px;
+    width: auto;
+}
