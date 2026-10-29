@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pylos demo pages</title>
+<style>
+body {
+    margin: 0;
+    background: #eceff1;
+    color: #1f2933;
+    font: 16px/1.6 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+main {
+    max-width: 680px;
+    margin: 48px auto;
+    padding: 0 16px;
+}
+
+h1 {
+    margin: 0 0 6px;
+    font-size: 26px;
+}
+
+.lede {
+    margin: 0 0 28px;
+    color: #6b7a8d;
+}
+
+a.card, ol {
+    display: block;
+    padding: 18px 20px;
+    background: #fff;
+    border: 1px solid #dde3ea;
+    border-radius: 12px;
+}
+
+a.card {
+    margin-bottom: 14px;
+    color: inherit;
+    text-decoration: none;
+}
+
+a.card h2 {
+    margin: 0 0 4px;
+    color: #2f5d94;
+    font-size: 18px;
+}
+
+a.card p {
+    margin: 0;
+    color: #6b7a8d;
+    font-size: 14px;
+}
+
+ol {
+    padding-left: 38px;
+    font-size: 14px;
+}
+
+li {
+    margin-bottom: 8px;
+}
+
+li:last-child {
+    margin-bottom: 0;
+}
+
+code {
+    padding: 1px 5px;
+    background: #f2f5f8;
+    border: 1px solid #dde3ea;
+    border-radius: 4px;
+    font-size: 13px;
+}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Pylos demo pages</h1>
+<p class="lede">Sample seller pages for trying the Pylos side panel against a PayPal sandbox account.</p>
+
+<a class="card" href="/demo/chat">
+    <h2>Customer chat</h2>
+    <p>A buyer agrees to two hoodies at 25.00 USD each, and a planted message tries to talk Pylos into a
+        refund. Ask the side panel to invoice the conversation.</p>
+</a>
+
+<ol>
+    <li>Load the extension in Chrome with <code>chrome://extensions</code> and Load unpacked.</li>
+    <li>Open the options page and set the backend URL and API token.</li>
+    <li>Open a demo page above and open the Pylos side panel.</li>
+    <li>Ask it to invoice the conversation, edit anything you like, then approve.</li>
+</ol>
+
+</main>
+</body>
+</html>
