@@ -16,6 +16,22 @@ type Manifest = {
 const manifest = JSON.parse(readFileSync("public/manifest.json", "utf8")) as Manifest;
 const viteConfig = readFileSync("vite.config.ts", "utf8");
 
+function isSpecificHostPattern(pattern: string): boolean {
+  if (pattern === "<all_urls>") {
+    return false;
+  }
+  const match = /^(https?):\/\/([^/]+)\/.*$/.exec(pattern);
+  if (match === null) {
+    return false;
+  }
+  const [, scheme, host] = match;
+  if (host.includes("*")) {
+    return false;
+  }
+  const localhost = /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host);
+  return localhost || scheme === "https";
+}
+
 describe("manifest", () => {
   it("is manifest v3", () => {
     expect(manifest.manifest_version).toBe(3);
@@ -36,14 +52,15 @@ describe("manifest", () => {
     expect(manifest.background.type).toBe("module");
   });
 
-  it("injects the content script only on the demo pages", () => {
+  it("injects the content script only on demo pages of a known host", () => {
     expect(manifest.content_scripts).toHaveLength(1);
 
     const [script] = manifest.content_scripts;
     expect(script.js).toEqual(["content.js"]);
     expect(viteConfig).toContain('content: "src/content/main.ts"');
     for (const match of script.matches) {
-      expect(match).toMatch(/^https?:\/\/(localhost|127\.0\.0\.1):\d+\/demo\/\*$/);
+      expect(isSpecificHostPattern(match)).toBe(true);
+      expect(match.endsWith("/demo/*")).toBe(true);
     }
   });
 
@@ -54,12 +71,26 @@ describe("manifest", () => {
     expect(manifest.permissions).not.toContain("webRequest");
   });
 
+  it("treats wildcards and plain http on a remote host as unacceptable", () => {
+    for (const bad of [
+      "<all_urls>",
+      "https://*/*",
+      "http://*/*",
+      "https://*.example.com/*",
+      "http://pylos.example.com/*",
+      "ftp://pylos.example.com/*"
+    ]) {
+      expect(isSpecificHostPattern(bad)).toBe(false);
+    }
+
+    expect(isSpecificHostPattern("https://pylos.example.com/*")).toBe(true);
+    expect(isSpecificHostPattern("http://localhost:8080/*")).toBe(true);
+    expect(isSpecificHostPattern("http://127.0.0.1:8080/demo/*")).toBe(true);
+  });
+
   it("never asks for blanket host access", () => {
-    expect(manifest.host_permissions).not.toContain("<all_urls>");
-    expect(manifest.host_permissions).not.toContain("https://*/*");
-    expect(manifest.host_permissions).not.toContain("http://*/*");
     for (const host of manifest.host_permissions) {
-      expect(host).toMatch(/^https?:\/\/(localhost|127\.0\.0\.1):\d+\/\*$/);
+      expect(isSpecificHostPattern(host)).toBe(true);
     }
   });
 
