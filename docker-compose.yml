@@ -31,12 +31,31 @@ services:
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash}
       GEMINI_FALLBACK_MODEL: ${GEMINI_FALLBACK_MODEL:-gemini-3.5-flash-lite}
       SANDBOX_BUYER_EMAIL: ${SANDBOX_BUYER_EMAIL:-}
+    expose:
+      - "8080"
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     depends_on:
       db:
         condition: service_healthy
     restart: unless-stopped
 
+  caddy:
+    image: caddy:2
+    environment:
+      PYLOS_DOMAIN: ${PYLOS_DOMAIN:?set PYLOS_DOMAIN}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - app
+    restart: unless-stopped
+
 volumes:
   pylos-db:
+  caddy-data:
+  caddy-config:

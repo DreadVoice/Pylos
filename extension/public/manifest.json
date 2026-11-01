@@ -11,7 +11,8 @@
   ],
   "host_permissions": [
     "http://localhost:8080/*",
-    "http://127.0.0.1:8080/*"
+    "http://127.0.0.1:8080/*",
+    "https://15-235-248-3.sslip.io/*"
   ],
   "background": {
     "service_worker": "background.js",
@@ -28,7 +29,8 @@
     {
       "matches": [
         "http://localhost:8080/demo/*",
-        "http://127.0.0.1:8080/demo/*"
+        "http://127.0.0.1:8080/demo/*",
+        "https://15-235-248-3.sslip.io/demo/*"
       ],
       "js": [
         "content.js"

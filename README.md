@@ -11,11 +11,11 @@ the model, checked by deterministic code, edited by the seller if they want, and
 
 The hosted demo needs nothing installed except Chrome.
 
-1. Open the demo chat: **`<DEPLOYED_URL>/demo/chat`**
+1. Open the demo chat: **`https://15-235-248-3.sslip.io/demo/chat`**
 2. Load the extension: `chrome://extensions` → Developer mode → Load unpacked → the `dist` folder from
    the release zip
 3. On the Pylos card, click **Details → Extension options** and set:
-   - Backend URL: **`<DEPLOYED_URL>`**
+   - Backend URL: **`https://15-235-248-3.sslip.io`**
    - API token: **`<DEMO_API_TOKEN>`**
 4. Click **Test connection**. It should say *Connected*.
 5. Reload the demo chat tab, then click the **Pylos** toolbar icon to open the side panel.
@@ -24,7 +24,7 @@ The hosted demo needs nothing installed except Chrome.
 8. Sign in at [sandbox.paypal.com](https://sandbox.paypal.com) as the sandbox buyer below to see the
    invoice arrive with the amount you edited.
 
-Sandbox buyer: **`<SANDBOX_BUYER_EMAIL>`** / **`<SANDBOX_BUYER_PASSWORD>`**
+Sandbox buyer: **`sb-l47vrz53533074@personal.example.com`** / **`<SANDBOX_BUYER_PASSWORD>`**
 
 ### What to look for
 
