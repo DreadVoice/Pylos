@@ -1,5 +1,6 @@
 package com.dreadvoice.pylos.action;
 
+import com.dreadvoice.pylos.action.payload.SendRefundPayload;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
@@ -7,28 +8,39 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.stream.IntStream;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 class ActionValidatorTests {
 
-    private static ActionValidator validator;
+    private RefundLimits refundLimits;
+    private ActionValidator validator;
 
-    @BeforeAll
-    static void setUp() {
+    @BeforeEach
+    void setUp() {
         ObjectMapper objectMapper = JsonMapper.builder()
                 .propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
                 .serializationInclusion(JsonInclude.Include.NON_NULL)
                 .build();
         ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
         Validator beanValidator = factory.getValidator();
-        validator = new ActionValidator(objectMapper, beanValidator);
+        refundLimits = mock(RefundLimits.class);
+        when(refundLimits.violations(any())).thenReturn(List.of());
+        validator = new ActionValidator(objectMapper, beanValidator, refundLimits);
     }
 
     @Test
@@ -218,9 +230,88 @@ class ActionValidatorTests {
 
     @Test
     void rejectsActionTypesThatAreNotImplementedYet() {
-        assertThat(validator.validate(ActionType.REFUND, "{}").valid()).isFalse();
         assertThat(validator.validate(ActionType.ADD_TRACKING, "{}").valid()).isFalse();
         assertThat(validator.validate(ActionType.DISPUTE_RESPONSE, "{}").valid()).isFalse();
+    }
+
+    @Test
+    void acceptsAWellFormedRefund() {
+        ActionValidationResult result = validator.validate(ActionType.REFUND, """
+                {"invoice_id":"INV2-GS4Q-CBHK-S6QM-CC5V","currency_code":"USD","amount":"15.00",
+                 "note_to_payer":"Sorry about the damaged item"}
+                """);
+
+        assertThat(result.violations()).isEmpty();
+        assertThat(result.valid()).isTrue();
+    }
+
+    @Test
+    void passesTheParsedRefundToTheCaptureLimits() {
+        validator.validate(ActionType.REFUND,
+                "{\"invoice_id\":\"INV2-GS4Q-CBHK-S6QM-CC5V\",\"currency_code\":\"usd\","
+                        + "\"amount\":\"15.00\"}");
+
+        ArgumentCaptor<SendRefundPayload> captor = ArgumentCaptor.forClass(SendRefundPayload.class);
+        verify(refundLimits).violations(captor.capture());
+        assertThat(captor.getValue().invoiceId()).isEqualTo("INV2-GS4Q-CBHK-S6QM-CC5V");
+        assertThat(captor.getValue().amount()).isEqualTo("15.00");
+    }
+
+    @Test
+    void reportsWhatTheCaptureLimitsRejected() {
+        when(refundLimits.violations(any())).thenReturn(
+                List.of("amount: must not exceed the 10.00 USD still refundable on INV2-A"));
+
+        ActionValidationResult result = validator.validate(ActionType.REFUND,
+                "{\"invoice_id\":\"INV2-GS4Q-CBHK-S6QM-CC5V\",\"currency_code\":\"USD\","
+                        + "\"amount\":\"50000.00\"}");
+
+        assertThat(result.valid()).isFalse();
+        assertThat(result.violations())
+                .containsExactly("amount: must not exceed the 10.00 USD still refundable on INV2-A");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0", "0.00", "-5.00", "abc", "1e3", "15.123", "", " "})
+    void rejectsRefundAmountsThatAreNotPositivePlainDecimals(String amount) {
+        ActionValidationResult result = validator.validate(ActionType.REFUND,
+                "{\"invoice_id\":\"INV2-GS4Q-CBHK-S6QM-CC5V\",\"currency_code\":\"USD\","
+                        + "\"amount\":\"" + amount + "\"}");
+
+        assertThat(result.valid()).isFalse();
+        assertThat(result.violations()).anyMatch(violation -> violation.startsWith("amount:"));
+    }
+
+    @Test
+    void neverAsksPayPalAboutARefundWhoseShapeIsAlreadyWrong() {
+        ActionValidationResult result = validator.validate(ActionType.REFUND,
+                "{\"invoice_id\":\"not-an-invoice\",\"currency_code\":\"GBP\","
+                        + "\"amount\":\"-1.00\"}");
+
+        assertThat(result.valid()).isFalse();
+        verifyNoInteractions(refundLimits);
+    }
+
+    @Test
+    void rejectsUnsupportedCurrencyOnARefund() {
+        ActionValidationResult result = validator.validate(ActionType.REFUND,
+                "{\"invoice_id\":\"INV2-GS4Q-CBHK-S6QM-CC5V\",\"currency_code\":\"GBP\","
+                        + "\"amount\":\"15.00\"}");
+
+        assertThat(result.valid()).isFalse();
+        assertThat(result.violations())
+                .contains("currencyCode: GBP is not a supported currency");
+    }
+
+    @Test
+    void rejectsRefundPayloadsCarryingUnknownFields() {
+        ActionValidationResult result = validator.validate(ActionType.REFUND,
+                "{\"invoice_id\":\"INV2-GS4Q-CBHK-S6QM-CC5V\",\"currency_code\":\"USD\","
+                        + "\"amount\":\"15.00\",\"recipient\":\"attacker@evil.example.com\"}");
+
+        assertThat(result.valid()).isFalse();
+        assertThat(result.violations())
+                .containsExactly("payload: could not be read as the expected shape");
     }
 
     @Test

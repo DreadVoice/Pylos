@@ -3,6 +3,7 @@ package com.dreadvoice.pylos.agent;
 import com.dreadvoice.pylos.action.ActionStatus;
 import com.dreadvoice.pylos.action.ActionType;
 import com.dreadvoice.pylos.action.ActionValidator;
+import com.dreadvoice.pylos.action.RefundLimits;
 import com.dreadvoice.pylos.action.PendingAction;
 import com.dreadvoice.pylos.action.PendingActionRepository;
 import com.dreadvoice.pylos.context.ContextSanitizer;
@@ -15,6 +16,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.dreadvoice.pylos.paypal.CaptureLookup;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -66,7 +68,8 @@ class CopilotAgentTests {
                 .serializationInclusion(JsonInclude.Include.NON_NULL)
                 .build();
         ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
-        validator = new ActionValidator(objectMapper, factory.getValidator());
+        validator = new ActionValidator(objectMapper, factory.getValidator(),
+                new RefundLimits(mock(CaptureLookup.class)));
 
         chatModel = new ScriptedChatModel();
         invoiceReader = mock(InvoiceReader.class);

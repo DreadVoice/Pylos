@@ -2,6 +2,7 @@ package com.dreadvoice.pylos.action;
 
 import com.dreadvoice.pylos.action.payload.InvoiceLineItem;
 import com.dreadvoice.pylos.action.payload.SendInvoicePayload;
+import com.dreadvoice.pylos.action.payload.SendRefundPayload;
 import com.dreadvoice.pylos.action.payload.SendReminderPayload;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -27,11 +28,13 @@ public class ActionValidator {
 
     private final ObjectReader strictReader;
     private final Validator validator;
+    private final RefundLimits refundLimits;
 
-    public ActionValidator(ObjectMapper objectMapper, Validator validator) {
+    public ActionValidator(ObjectMapper objectMapper, Validator validator, RefundLimits refundLimits) {
         this.strictReader = objectMapper.reader()
                 .with(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
         this.validator = validator;
+        this.refundLimits = refundLimits;
     }
 
     public ActionValidationResult validate(ActionType actionType, String payloadJson) {
@@ -41,7 +44,8 @@ public class ActionValidator {
         return switch (actionType) {
             case SEND_INVOICE -> validateSendInvoice(payloadJson);
             case SEND_REMINDER -> validateSendReminder(payloadJson);
-            case REFUND, ADD_TRACKING, DISPUTE_RESPONSE ->
+            case REFUND -> validateSendRefund(payloadJson);
+            case ADD_TRACKING, DISPUTE_RESPONSE ->
                     ActionValidationResult.rejected(
                             List.of("actionType: " + actionType + " is not supported yet"));
         };
@@ -76,6 +80,45 @@ public class ActionValidator {
         }
 
         return result(new ArrayList<>(constraintViolations(payload)));
+    }
+
+    private ActionValidationResult validateSendRefund(String payloadJson) {
+        SendRefundPayload payload;
+        try {
+            payload = strictReader.readValue(payloadJson, SendRefundPayload.class);
+        } catch (IOException unreadable) {
+            return ActionValidationResult.rejected(List.of(UNREADABLE_PAYLOAD));
+        }
+        if (payload == null) {
+            return ActionValidationResult.rejected(List.of("payload: must not be empty"));
+        }
+
+        List<String> violations = new ArrayList<>(constraintViolations(payload));
+        violations.addAll(refundAmountViolations(payload));
+        if (!violations.isEmpty()) {
+            return result(violations);
+        }
+
+        return result(new ArrayList<>(refundLimits.violations(payload)));
+    }
+
+    private List<String> refundAmountViolations(SendRefundPayload payload) {
+        List<String> violations = new ArrayList<>();
+
+        if (payload.currencyCode() != null
+                && !SUPPORTED_CURRENCIES.contains(payload.currencyCode().toUpperCase())) {
+            violations.add("currencyCode: " + payload.currencyCode() + " is not a supported currency");
+        }
+
+        Optional<BigDecimal> amount = MoneyAmounts.parse(payload.amount());
+        if (amount.isEmpty()) {
+            violations.add("amount: " + describe(payload.amount())
+                    + " is not a plain decimal with at most 2 decimal places");
+        } else if (amount.get().signum() <= 0) {
+            violations.add("amount: must be greater than zero");
+        }
+
+        return violations;
     }
 
     private List<String> invoiceAmountViolations(SendInvoicePayload payload) {

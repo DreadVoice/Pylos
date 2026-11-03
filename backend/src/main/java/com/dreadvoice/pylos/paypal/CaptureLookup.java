@@ -14,11 +14,11 @@ public class CaptureLookup {
     private static final String ZERO = "0.00";
 
     private final InvoiceReader invoiceReader;
-    private final RefundClient refundClient;
+    private final CaptureReader captureReader;
 
-    public CaptureLookup(InvoiceReader invoiceReader, RefundClient refundClient) {
+    public CaptureLookup(InvoiceReader invoiceReader, CaptureReader captureReader) {
         this.invoiceReader = invoiceReader;
-        this.refundClient = refundClient;
+        this.captureReader = captureReader;
     }
 
     public Optional<InvoiceCapture> forInvoice(String invoiceId) {
@@ -27,7 +27,7 @@ public class CaptureLookup {
             return Optional.empty();
         }
         return captureId(invoice)
-                .map(captureId -> toInvoiceCapture(invoice, captureId, refundClient.getCapture(captureId)));
+                .map(captureId -> toInvoiceCapture(invoice, captureId, captureReader.get(captureId)));
     }
 
     private InvoiceCapture toInvoiceCapture(InvoiceSummary invoice, String captureId, CaptureDetail capture) {

@@ -31,6 +31,9 @@ class RefundClientIT {
     private RefundClient refundClient;
 
     @Autowired
+    private CaptureReader captureReader;
+
+    @Autowired
     private CaptureLookup captureLookup;
 
     @Test
@@ -38,7 +41,7 @@ class RefundClientIT {
         InvoiceCapture capture = firstPaidInvoiceCapture()
                 .orElseThrow(() -> new AssertionError("unreachable"));
 
-        CaptureDetail detail = refundClient.getCapture(capture.captureId());
+        CaptureDetail detail = captureReader.get(capture.captureId());
 
         assertThat(detail.id()).isEqualTo(capture.captureId());
         assertThat(detail.status()).isNotBlank();

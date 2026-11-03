@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import jakarta.validation.Validation;
 import jakarta.validation.ValidatorFactory;
+import com.dreadvoice.pylos.paypal.CaptureLookup;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,7 +53,8 @@ class StrandedApprovalRecoveryTests {
                 .serializationInclusion(JsonInclude.Include.NON_NULL)
                 .build();
         ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
-        ActionValidator validator = new ActionValidator(objectMapper, factory.getValidator());
+        ActionValidator validator = new ActionValidator(objectMapper, factory.getValidator(),
+                new RefundLimits(mock(CaptureLookup.class)));
         executor = mock(ActionExecutor.class);
         service = new ActionService(repository, validator, executor,
                 Clock.fixed(Instant.parse("2026-10-26T10:00:00Z"), ZoneOffset.UTC));

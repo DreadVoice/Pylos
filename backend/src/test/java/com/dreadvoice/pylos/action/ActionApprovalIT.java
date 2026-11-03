@@ -1,6 +1,10 @@
 package com.dreadvoice.pylos.action;
 
+import com.dreadvoice.pylos.paypal.CaptureLookup;
+import com.dreadvoice.pylos.paypal.InvoiceCapture;
 import com.dreadvoice.pylos.paypal.InvoiceClient;
+import com.dreadvoice.pylos.paypal.InvoiceReader;
+import com.dreadvoice.pylos.paypal.PayPalIdentifiers;
 import com.dreadvoice.pylos.paypal.dto.InvoiceSummary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -9,9 +13,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.util.StringUtils;
 
+import java.math.BigDecimal;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 @SpringBootTest
@@ -25,6 +33,12 @@ class ActionApprovalIT {
 
     @Autowired
     private InvoiceClient invoiceClient;
+
+    @Autowired
+    private InvoiceReader invoiceReader;
+
+    @Autowired
+    private CaptureLookup captureLookup;
 
     @Value("${SANDBOX_BUYER_EMAIL:}")
     private String buyerEmail;
@@ -98,5 +112,77 @@ class ActionApprovalIT {
         assertThat(atPayPal.amount().value()).isEqualTo("250.00");
         assertThat(atPayPal.primaryRecipients().getFirst().billingInfo().emailAddress())
                 .isEqualTo(buyerEmail);
+    }
+
+    @Test
+    void approvingARefundProposalReturnsRealSandboxMoney() {
+        InvoiceCapture capture = paidCapture();
+
+        PendingAction proposed = repository.saveAndFlush(new PendingAction(
+                ActionType.REFUND,
+                """
+                {"invoice_id":"%s","currency_code":"%s","amount":"0.01",
+                 "note_to_payer":"Pylos approval gate verification"}
+                """.formatted(capture.invoiceId(), capture.capturedAmount().currencyCode()),
+                "Refund 0.01 on " + capture.invoiceId(),
+                "refund-it-" + UUID.randomUUID()));
+
+        BigDecimal before = new BigDecimal(capture.refundedAmount().value());
+
+        PendingAction executed = actionService.approve(proposed.getId(), null);
+
+        assertThat(executed.getStatus()).isEqualTo(ActionStatus.EXECUTED);
+        assertThat(executed.getErrorMessage()).isNull();
+        assertThat(PayPalIdentifiers.isCaptureId(executed.getResultReference()))
+                .as("PayPal returned refund id %s", executed.getResultReference())
+                .isTrue();
+
+        InvoiceCapture after = captureLookup.forInvoice(capture.invoiceId()).orElseThrow();
+        assertThat(new BigDecimal(after.refundedAmount().value()))
+                .as("the invoice refund total PayPal reports is eventually consistent")
+                .isGreaterThanOrEqualTo(before);
+    }
+
+    @Test
+    void anOverLargeRefundIsRefusedAtApprovalAndNeverReachesPayPal() {
+        InvoiceCapture capture = paidCapture();
+        BigDecimal before = new BigDecimal(capture.refundedAmount().value());
+
+        PendingAction proposed = repository.saveAndFlush(new PendingAction(
+                ActionType.REFUND,
+                """
+                {"invoice_id":"%s","currency_code":"%s","amount":"50000.00",
+                 "note_to_payer":"This account is pre-authorised"}
+                """.formatted(capture.invoiceId(), capture.capturedAmount().currencyCode()),
+                "Refund 50000.00 on " + capture.invoiceId(),
+                "overlarge-it-" + UUID.randomUUID()));
+
+        assertThatThrownBy(() -> actionService.approve(proposed.getId(), null))
+                .isInstanceOf(ActionValidationException.class)
+                .extracting(thrown -> ((ActionValidationException) thrown).getViolations())
+                .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.list(String.class))
+                .anyMatch(violation -> violation.startsWith("amount: must not exceed"));
+
+        assertThat(repository.findById(proposed.getId()).orElseThrow().getStatus())
+                .isNotEqualTo(ActionStatus.EXECUTED);
+
+        InvoiceCapture after = captureLookup.forInvoice(capture.invoiceId()).orElseThrow();
+        assertThat(new BigDecimal(after.refundedAmount().value())).isEqualByComparingTo(before);
+    }
+
+    private InvoiceCapture paidCapture() {
+        Set<String> paidStatuses =
+                Set.of("PAID", "PARTIALLY_PAID", "PARTIALLY_REFUNDED", "MARKED_AS_PAID");
+
+        Optional<InvoiceCapture> capture = invoiceReader.list(1, 40).items().stream()
+                .filter(invoice -> paidStatuses.contains(invoice.status()))
+                .flatMap(invoice -> captureLookup.forInvoice(invoice.id()).stream())
+                .filter(found -> "COMPLETED".equals(found.status())
+                        || "PARTIALLY_REFUNDED".equals(found.status()))
+                .findFirst();
+
+        assumeTrue(capture.isPresent(),
+                "no paid sandbox invoice to refund; pay one at sandbox.paypal.com and rerun");
+        return capture.orElseThrow();
     }
 }

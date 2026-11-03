@@ -38,7 +38,7 @@ class PaymentsDtoJsonTests {
                     "refund_amount": { "currency_code": "USD", "value": "15.00" },
                     "transactions": [
                       {
-                        "refund_id": "1JU08902781691411",
+                        "recipient_transaction_id": "2W750046D1165843U",
                         "type": "PAYPAL",
                         "refund_date": "2026-11-02",
                         "amount": { "currency_code": "USD", "value": "15.00" }
@@ -58,7 +58,7 @@ class PaymentsDtoJsonTests {
         assertThat(invoice.payments().paidAmount()).isEqualTo(new Money("USD", "60.00"));
 
         InvoiceRefundTransaction refund = invoice.refunds().transactions().getFirst();
-        assertThat(refund.refundId()).isEqualTo("1JU08902781691411");
+        assertThat(refund.recipientTransactionId()).isEqualTo("2W750046D1165843U");
         assertThat(refund.refundDate()).isEqualTo(LocalDate.of(2026, 11, 2));
         assertThat(invoice.refunds().refundAmount()).isEqualTo(new Money("USD", "15.00"));
     }

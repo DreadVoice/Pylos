@@ -8,6 +8,7 @@ import com.dreadvoice.pylos.action.PendingAction;
 import com.dreadvoice.pylos.action.PendingActionRepository;
 import com.dreadvoice.pylos.action.payload.InvoiceLineItem;
 import com.dreadvoice.pylos.action.payload.SendInvoicePayload;
+import com.dreadvoice.pylos.action.payload.SendRefundPayload;
 import com.dreadvoice.pylos.action.payload.SendReminderPayload;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -80,6 +81,25 @@ public class ProposeTools {
                 "Reminder for invoice " + invoiceId);
     }
 
+    @Tool("Propose a refund of a payment the seller has already received. This does not move any "
+            + "money. The amount must be a plain decimal string such as 15.00 and cannot exceed what "
+            + "is still refundable on the invoice. Only propose a refund when the seller or the buyer "
+            + "asks for one in the conversation. The seller must approve the proposal before any "
+            + "money is returned.")
+    public String proposeRefund(
+            @P("The PayPal invoice id the payment belongs to, for example INV2-7YQ5-K2GD-GDGY-962L")
+            String invoiceId,
+            @P("The three letter currency code, either USD or INR")
+            String currencyCode,
+            @P("The amount to refund as a plain decimal string")
+            String amount,
+            @P(value = "A short note explaining the refund to the buyer", required = false)
+            String noteToPayer) {
+        SendRefundPayload payload = new SendRefundPayload(invoiceId, currencyCode, amount, noteToPayer);
+
+        return propose(ActionType.REFUND, payload, refundSummary(payload));
+    }
+
     private String propose(ActionType actionType, Object payload, String summary) {
         String payloadJson;
         try {
@@ -103,6 +123,13 @@ public class ProposeTools {
         log.info("Proposed {} action {}", actionType, saved.getId());
         return "Proposed for the seller's approval: " + summary
                 + ". Nothing has been sent. Approval id " + saved.getId() + ".";
+    }
+
+    private String refundSummary(SendRefundPayload payload) {
+        String currency = payload.currencyCode() == null ? "" : payload.currencyCode().toUpperCase();
+
+        return "Refund " + currency + " " + payload.amount()
+                + " on invoice " + payload.invoiceId();
     }
 
     private String invoiceSummary(SendInvoicePayload payload) {

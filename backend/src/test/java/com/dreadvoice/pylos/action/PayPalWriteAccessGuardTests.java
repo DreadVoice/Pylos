@@ -8,6 +8,8 @@ import org.springframework.core.type.filter.AssignableTypeFilter;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Constructor;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -28,10 +30,26 @@ class PayPalWriteAccessGuardTests {
     }
 
     @Test
-    void nothingOutsideActionExecutorMayHoldTheRefundClient() {
+    void actionExecutorIsTheOnlyComponentAllowedToHoldTheRefundClient() {
         Set<String> holders = componentsDependingOn(RefundClient.class);
 
-        assertThat(holders).isSubsetOf(ActionExecutor.class.getName());
+        assertThat(holders).containsExactly(ActionExecutor.class.getName());
+    }
+
+    @Test
+    void theValidationPathCanReadFromPayPalButNeverReachAWriteClient() {
+        for (Class<?> entryPoint : List.of(ActionValidator.class, RefundLimits.class)) {
+            assertThat(reachableFrom(entryPoint))
+                    .as("types reachable from %s", entryPoint.getSimpleName())
+                    .doesNotContain(InvoiceClient.class, RefundClient.class);
+        }
+    }
+
+    @Test
+    void theCaptureLookupReadsWithoutHoldingAWriteClient() {
+        assertThat(reachableFrom(com.dreadvoice.pylos.paypal.CaptureLookup.class))
+                .doesNotContain(InvoiceClient.class, RefundClient.class)
+                .contains(com.dreadvoice.pylos.paypal.CaptureReader.class);
     }
 
     @Test
@@ -73,6 +91,21 @@ class PayPalWriteAccessGuardTests {
                         .anyMatch(writeClient::isAssignableFrom))
                 .map(Class::getName)
                 .collect(Collectors.toCollection(java.util.TreeSet::new));
+    }
+
+    private static Set<Class<?>> reachableFrom(Class<?> entryPoint) {
+        Set<Class<?>> seen = new java.util.LinkedHashSet<>();
+        Deque<Class<?>> queue = new ArrayDeque<>(constructorParameterTypes(entryPoint));
+
+        while (!queue.isEmpty()) {
+            Class<?> next = queue.removeFirst();
+            if (!next.getName().startsWith(BASE_PACKAGE) || !seen.add(next)) {
+                continue;
+            }
+            queue.addAll(constructorParameterTypes(next));
+        }
+
+        return seen;
     }
 
     private static List<Class<?>> constructorParameterTypes(Class<?> type) {

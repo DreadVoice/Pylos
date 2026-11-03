@@ -1,6 +1,5 @@
 package com.dreadvoice.pylos.paypal;
 
-import com.dreadvoice.pylos.paypal.dto.CaptureDetail;
 import com.dreadvoice.pylos.paypal.dto.Money;
 import com.dreadvoice.pylos.paypal.dto.RefundDetail;
 import com.dreadvoice.pylos.paypal.dto.RefundRequest;
@@ -12,7 +11,6 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -23,8 +21,6 @@ import org.springframework.web.client.RestClient;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.client.ExpectedCount.once;
@@ -39,7 +35,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 class RefundClientTests {
 
     private static final String BASE_URL = "https://api-m.sandbox.paypal.test";
-    private static final String CAPTURE_ID = "3C679366HH908993F";
+    private static final String CAPTURE_ID = "2S7263346H6677809";
     private static final String INVOICE_ID = "INV2-GS4Q-CBHK-S6QM-CC5V";
 
     private MockRestServiceServer server;
@@ -66,25 +62,6 @@ class RefundClientTests {
         authClient = mock(PayPalAuthClient.class);
         when(authClient.accessToken()).thenReturn("token-one");
         refundClient = new RefundClient(builder.build(), authClient);
-    }
-
-    @Test
-    void getCaptureReadsTheCapturedAmount() {
-        server.expect(once(), requestTo(BASE_URL + "/v2/payments/captures/" + CAPTURE_ID))
-                .andExpect(method(HttpMethod.GET))
-                .andExpect(header(HttpHeaders.AUTHORIZATION, "Bearer token-one"))
-                .andRespond(withSuccess("{\"id\":\"" + CAPTURE_ID + "\",\"status\":\"COMPLETED\","
-                                + "\"amount\":{\"currency_code\":\"USD\",\"value\":\"60.00\"},"
-                                + "\"invoice_id\":\"" + INVOICE_ID + "\"}",
-                        MediaType.APPLICATION_JSON));
-
-        CaptureDetail capture = refundClient.getCapture(CAPTURE_ID);
-
-        assertThat(capture.id()).isEqualTo(CAPTURE_ID);
-        assertThat(capture.status()).isEqualTo("COMPLETED");
-        assertThat(capture.amount()).isEqualTo(new Money("USD", "60.00"));
-        assertThat(capture.invoiceId()).isEqualTo(INVOICE_ID);
-        server.verify();
     }
 
     @Test
@@ -125,13 +102,10 @@ class RefundClientTests {
 
     @Test
     void rejectsAnythingThatIsNotShapedLikeACaptureId() {
-        String[] rejected = {null, "", INVOICE_ID, "3c679366hh908993f", "3C679366HH908993",
-                "3C679366HH908993FF", "3C679366-H908993F"};
+        String[] rejected = {null, "", INVOICE_ID, "2s7263346h6677809", "2S7263346H667780",
+                "2S7263346H66778099", "2S726334-H6677809"};
 
         for (String captureId : rejected) {
-            assertThatThrownBy(() -> refundClient.getCapture(captureId))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("Not a PayPal capture id");
             assertThatThrownBy(() -> refundClient.refund(
                     captureId, new RefundRequest(new Money("USD", "1.00"), null, null), null))
                     .isInstanceOf(IllegalArgumentException.class)
@@ -139,24 +113,6 @@ class RefundClientTests {
         }
 
         verifyNoInteractions(authClient);
-        server.verify();
-    }
-
-    @Test
-    void retriesOnceWithAFreshTokenAfterUnauthorized() {
-        when(authClient.accessToken()).thenReturn("stale-token", "fresh-token");
-
-        server.expect(once(), requestTo(BASE_URL + "/v2/payments/captures/" + CAPTURE_ID))
-                .andExpect(header(HttpHeaders.AUTHORIZATION, "Bearer stale-token"))
-                .andRespond(withStatus(HttpStatus.UNAUTHORIZED));
-        server.expect(once(), requestTo(BASE_URL + "/v2/payments/captures/" + CAPTURE_ID))
-                .andExpect(header(HttpHeaders.AUTHORIZATION, "Bearer fresh-token"))
-                .andRespond(withSuccess("{\"id\":\"" + CAPTURE_ID + "\"}", MediaType.APPLICATION_JSON));
-
-        assertThat(refundClient.getCapture(CAPTURE_ID).id()).isEqualTo(CAPTURE_ID);
-
-        verify(authClient).invalidate();
-        verify(authClient, times(2)).accessToken();
         server.verify();
     }
 

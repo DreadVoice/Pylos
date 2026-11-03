@@ -9,11 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientResponseException;
-
-import java.util.function.Function;
 
 @Component
 public class InvoiceClient {
@@ -37,7 +33,7 @@ public class InvoiceClient {
     }
 
     public InvoiceSummary createDraft(InvoiceDraftRequest request, String requestId) {
-        return withToken(token -> restClient.post()
+        return PayPalRequests.withToken(authClient, "invoicing", token -> restClient.post()
                 .uri(INVOICES_PATH)
                 .headers(headers -> {
                     headers.setBearerAuth(token);
@@ -53,7 +49,7 @@ public class InvoiceClient {
     }
 
     public InvoiceSummary get(String invoiceId) {
-        return withToken(token -> restClient.get()
+        return PayPalRequests.withToken(authClient, "invoicing", token -> restClient.get()
                 .uri(INVOICES_PATH + "/{invoiceId}", invoiceId)
                 .headers(headers -> headers.setBearerAuth(token))
                 .retrieve()
@@ -61,7 +57,7 @@ public class InvoiceClient {
     }
 
     public InvoiceList list(int page, int pageSize) {
-        return withToken(token -> restClient.get()
+        return PayPalRequests.withToken(authClient, "invoicing", token -> restClient.get()
                 .uri(uriBuilder -> uriBuilder.path(INVOICES_PATH)
                         .queryParam("page", page)
                         .queryParam("page_size", pageSize)
@@ -77,7 +73,7 @@ public class InvoiceClient {
     }
 
     public void send(String invoiceId, InvoiceNotification notification, String requestId) {
-        withToken(token -> restClient.post()
+        PayPalRequests.withToken(authClient, "invoicing", token -> restClient.post()
                 .uri(INVOICES_PATH + "/{invoiceId}/send", invoiceId)
                 .headers(headers -> {
                     headers.setBearerAuth(token);
@@ -105,7 +101,7 @@ public class InvoiceClient {
     }
 
     public void delete(String invoiceId) {
-        withToken(token -> restClient.delete()
+        PayPalRequests.withToken(authClient, "invoicing", token -> restClient.delete()
                 .uri(INVOICES_PATH + "/{invoiceId}", invoiceId)
                 .headers(headers -> headers.setBearerAuth(token))
                 .retrieve()
@@ -117,7 +113,7 @@ public class InvoiceClient {
     }
 
     public void remind(String invoiceId, InvoiceNotification notification, String requestId) {
-        withToken(token -> restClient.post()
+        PayPalRequests.withToken(authClient, "invoicing", token -> restClient.post()
                 .uri(INVOICES_PATH + "/{invoiceId}/remind", invoiceId)
                 .headers(headers -> {
                     headers.setBearerAuth(token);
@@ -132,7 +128,7 @@ public class InvoiceClient {
     }
 
     public void cancel(String invoiceId, InvoiceNotification notification) {
-        withToken(token -> restClient.post()
+        PayPalRequests.withToken(authClient, "invoicing", token -> restClient.post()
                 .uri(INVOICES_PATH + "/{invoiceId}/cancel", invoiceId)
                 .headers(headers -> headers.setBearerAuth(token))
                 .contentType(MediaType.APPLICATION_JSON)
@@ -142,7 +138,7 @@ public class InvoiceClient {
     }
 
     public String generateNextInvoiceNumber() {
-        InvoiceNumber invoiceNumber = withToken(token -> restClient.post()
+        InvoiceNumber invoiceNumber = PayPalRequests.withToken(authClient, "invoicing", token -> restClient.post()
                 .uri(NEXT_INVOICE_NUMBER_PATH)
                 .headers(headers -> headers.setBearerAuth(token))
                 .contentType(MediaType.APPLICATION_JSON)
@@ -166,28 +162,5 @@ public class InvoiceClient {
 
     private String sendRequestId(String requestId) {
         return StringUtils.hasText(requestId) ? requestId + "-send" : null;
-    }
-
-    private <T> T withToken(Function<String, T> call) {
-        try {
-            return call.apply(authClient.accessToken());
-        } catch (HttpClientErrorException.Unauthorized unauthorized) {
-            authClient.invalidate();
-            try {
-                return call.apply(authClient.accessToken());
-            } catch (RestClientResponseException retryFailure) {
-                throw apiException(retryFailure);
-            }
-        } catch (RestClientResponseException failure) {
-            throw apiException(failure);
-        }
-    }
-
-    private PayPalApiException apiException(RestClientResponseException exception) {
-        return new PayPalApiException(
-                "PayPal invoicing request failed with status " + exception.getStatusCode().value(),
-                exception.getStatusCode(),
-                exception.getResponseBodyAsString(),
-                exception);
     }
 }

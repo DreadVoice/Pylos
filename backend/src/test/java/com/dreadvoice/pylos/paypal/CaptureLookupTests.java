@@ -27,20 +27,20 @@ class CaptureLookupTests {
     private static final String CAPTURE_ID = "3C679366HH908993F";
 
     private InvoiceReader invoiceReader;
-    private RefundClient refundClient;
+    private CaptureReader captureReader;
     private CaptureLookup captureLookup;
 
     @BeforeEach
     void setUp() {
         invoiceReader = mock(InvoiceReader.class);
-        refundClient = mock(RefundClient.class);
-        captureLookup = new CaptureLookup(invoiceReader, refundClient);
+        captureReader = mock(CaptureReader.class);
+        captureLookup = new CaptureLookup(invoiceReader, captureReader);
     }
 
     @Test
     void findsTheCaptureBehindAPaidInvoice() {
         when(invoiceReader.get(INVOICE_ID)).thenReturn(paid(CAPTURE_ID, "60.00", null));
-        when(refundClient.getCapture(CAPTURE_ID))
+        when(captureReader.get(CAPTURE_ID))
                 .thenReturn(new CaptureDetail(CAPTURE_ID, "COMPLETED", new Money("USD", "60.00"), INVOICE_ID));
 
         InvoiceCapture capture = captureLookup.forInvoice(INVOICE_ID).orElseThrow();
@@ -55,7 +55,7 @@ class CaptureLookupTests {
     @Test
     void reportsWhatHasAlreadyBeenRefunded() {
         when(invoiceReader.get(INVOICE_ID)).thenReturn(paid(CAPTURE_ID, "60.00", "15.00"));
-        when(refundClient.getCapture(CAPTURE_ID))
+        when(captureReader.get(CAPTURE_ID))
                 .thenReturn(new CaptureDetail(CAPTURE_ID, "PARTIALLY_REFUNDED",
                         new Money("USD", "60.00"), INVOICE_ID));
 
@@ -72,7 +72,7 @@ class CaptureLookupTests {
 
         assertThat(captureLookup.forInvoice(INVOICE_ID)).isEmpty();
 
-        verify(refundClient, never()).getCapture(anyString());
+        verify(captureReader, never()).get(anyString());
     }
 
     @Test
@@ -82,7 +82,7 @@ class CaptureLookupTests {
 
         assertThat(captureLookup.forInvoice(INVOICE_ID)).isEmpty();
 
-        verify(refundClient, never()).getCapture(anyString());
+        verify(captureReader, never()).get(anyString());
     }
 
     @Test
@@ -96,7 +96,7 @@ class CaptureLookupTests {
                                 LocalDate.of(2026, 11, 1), new Money("USD", "40.00")))),
                 null);
         when(invoiceReader.get(INVOICE_ID)).thenReturn(invoice);
-        when(refundClient.getCapture(CAPTURE_ID))
+        when(captureReader.get(CAPTURE_ID))
                 .thenReturn(new CaptureDetail(CAPTURE_ID, "COMPLETED", new Money("USD", "40.00"), INVOICE_ID));
 
         InvoiceCapture capture = captureLookup.forInvoice(INVOICE_ID).orElseThrow();
@@ -108,7 +108,7 @@ class CaptureLookupTests {
     @Test
     void fallsBackToThePaidAmountWhenPayPalReturnsNoCaptureAmount() {
         when(invoiceReader.get(INVOICE_ID)).thenReturn(paid(CAPTURE_ID, "60.00", null));
-        when(refundClient.getCapture(CAPTURE_ID))
+        when(captureReader.get(CAPTURE_ID))
                 .thenReturn(new CaptureDetail(CAPTURE_ID, "COMPLETED", null, INVOICE_ID));
 
         InvoiceCapture capture = captureLookup.forInvoice(INVOICE_ID).orElseThrow();
@@ -127,7 +127,7 @@ class CaptureLookupTests {
     private static InvoiceSummary paid(String captureId, String captured, String refunded) {
         InvoiceRefunds refunds = refunded == null ? null : new InvoiceRefunds(
                 new Money("USD", refunded),
-                List.of(new InvoiceRefundTransaction("1JU08902781691411", "PAYPAL",
+                List.of(new InvoiceRefundTransaction(null, "2W750046D1165843U", "PAYPAL",
                         LocalDate.of(2026, 11, 2), new Money("USD", refunded))));
 
         return new InvoiceSummary(

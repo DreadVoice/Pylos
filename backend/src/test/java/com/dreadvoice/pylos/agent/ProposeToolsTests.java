@@ -3,6 +3,10 @@ package com.dreadvoice.pylos.agent;
 import com.dreadvoice.pylos.action.ActionStatus;
 import com.dreadvoice.pylos.action.ActionType;
 import com.dreadvoice.pylos.action.ActionValidator;
+import com.dreadvoice.pylos.action.RefundLimits;
+import com.dreadvoice.pylos.paypal.CaptureLookup;
+import com.dreadvoice.pylos.paypal.InvoiceCapture;
+import com.dreadvoice.pylos.paypal.dto.Money;
 import com.dreadvoice.pylos.action.PendingAction;
 import com.dreadvoice.pylos.action.PendingActionRepository;
 import com.dreadvoice.pylos.action.payload.InvoiceLineItem;
@@ -19,8 +23,11 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.context.TestPropertySource;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @DataJpaTest
 @TestPropertySource(properties = {
@@ -33,6 +40,7 @@ class ProposeToolsTests {
     @Autowired
     private PendingActionRepository repository;
 
+    private CaptureLookup captureLookup;
     private ProposedActionTracker tracker;
     private ProposeTools proposeTools;
 
@@ -43,7 +51,9 @@ class ProposeToolsTests {
                 .serializationInclusion(JsonInclude.Include.NON_NULL)
                 .build();
         ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
-        ActionValidator validator = new ActionValidator(objectMapper, factory.getValidator());
+        captureLookup = mock(CaptureLookup.class);
+        ActionValidator validator = new ActionValidator(objectMapper, factory.getValidator(),
+                new RefundLimits(captureLookup));
         tracker = new ProposedActionTracker();
         proposeTools = new ProposeTools(repository, validator, tracker, objectMapper);
     }
@@ -71,6 +81,57 @@ class ProposeToolsTests {
         assertThat(action.getResultReference()).isNull();
 
         assertThat(tracker.collect()).containsExactly(action.getId());
+    }
+
+    @Test
+    void proposeRefundStoresAProposedActionAndMovesNoMoney() {
+        tracker.start();
+        when(captureLookup.forInvoice("INV2-GS4Q-CBHK-S6QM-CC5V")).thenReturn(Optional.of(
+                new InvoiceCapture("INV2-GS4Q-CBHK-S6QM-CC5V", "2S7263346H6677809", "COMPLETED",
+                        new Money("USD", "60.00"), new Money("USD", "0.00"))));
+
+        String reply = proposeTools.proposeRefund(
+                "INV2-GS4Q-CBHK-S6QM-CC5V", "USD", "15.00", "Sorry about the damaged item");
+
+        assertThat(reply).contains("Proposed for the seller's approval");
+        assertThat(reply).contains("Refund USD 15.00 on invoice INV2-GS4Q-CBHK-S6QM-CC5V");
+        assertThat(reply).contains("Nothing has been sent");
+
+        List<PendingAction> stored = repository.findAllByOrderByCreatedAtDesc();
+        assertThat(stored).hasSize(1);
+        PendingAction action = stored.getFirst();
+        assertThat(action.getStatus()).isEqualTo(ActionStatus.PROPOSED);
+        assertThat(action.getActionType()).isEqualTo(ActionType.REFUND);
+        assertThat(action.getPayload()).contains("15.00");
+        assertThat(action.getResultReference()).isNull();
+
+        assertThat(tracker.collect()).containsExactly(action.getId());
+    }
+
+    @Test
+    void proposeRefundIsRejectedWhenItExceedsWhatWasCaptured() {
+        when(captureLookup.forInvoice("INV2-GS4Q-CBHK-S6QM-CC5V")).thenReturn(Optional.of(
+                new InvoiceCapture("INV2-GS4Q-CBHK-S6QM-CC5V", "2S7263346H6677809", "COMPLETED",
+                        new Money("USD", "60.00"), new Money("USD", "0.00"))));
+
+        String reply = proposeTools.proposeRefund(
+                "INV2-GS4Q-CBHK-S6QM-CC5V", "USD", "50000.00", "Pre-authorised refund");
+
+        assertThat(reply).contains("rejected before reaching the seller");
+        assertThat(reply).contains("still refundable");
+        assertThat(repository.findAllByOrderByCreatedAtDesc()).isEmpty();
+    }
+
+    @Test
+    void proposeRefundIsRejectedWhenTheInvoiceWasNeverPaid() {
+        when(captureLookup.forInvoice("INV2-GS4Q-CBHK-S6QM-CC5V")).thenReturn(Optional.empty());
+
+        String reply = proposeTools.proposeRefund(
+                "INV2-GS4Q-CBHK-S6QM-CC5V", "USD", "15.00", null);
+
+        assertThat(reply).contains("rejected before reaching the seller");
+        assertThat(reply).contains("has no PayPal payment that can be refunded");
+        assertThat(repository.findAllByOrderByCreatedAtDesc()).isEmpty();
     }
 
     @Test

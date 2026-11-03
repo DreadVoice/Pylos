@@ -1,9 +1,15 @@
 package com.dreadvoice.pylos.action;
 
+import com.dreadvoice.pylos.paypal.CaptureLookup;
+import com.dreadvoice.pylos.paypal.InvoiceCapture;
 import com.dreadvoice.pylos.paypal.InvoiceClient;
+import com.dreadvoice.pylos.paypal.RefundClient;
 import com.dreadvoice.pylos.paypal.dto.InvoiceDraftRequest;
 import com.dreadvoice.pylos.paypal.dto.InvoiceNotification;
 import com.dreadvoice.pylos.paypal.dto.InvoiceSummary;
+import com.dreadvoice.pylos.paypal.dto.Money;
+import com.dreadvoice.pylos.paypal.dto.RefundDetail;
+import com.dreadvoice.pylos.paypal.dto.RefundRequest;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
@@ -16,6 +22,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -32,6 +39,8 @@ class ActionExecutorTests {
     private static final Instant NOW = Instant.parse("2026-10-26T10:00:00Z");
 
     private InvoiceClient invoiceClient;
+    private RefundClient refundClient;
+    private CaptureLookup captureLookup;
     private ActionExecutor executor;
 
     @BeforeEach
@@ -41,7 +50,10 @@ class ActionExecutorTests {
                 .serializationInclusion(JsonInclude.Include.NON_NULL)
                 .build();
         invoiceClient = mock(InvoiceClient.class);
-        executor = new ActionExecutor(invoiceClient, objectMapper, Clock.fixed(NOW, ZoneOffset.UTC));
+        refundClient = mock(RefundClient.class);
+        captureLookup = mock(CaptureLookup.class);
+        executor = new ActionExecutor(invoiceClient, refundClient, captureLookup, objectMapper,
+                Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     @Test
@@ -117,13 +129,53 @@ class ActionExecutorTests {
 
     @Test
     void refusesActionTypesThatAreNotImplementedYet() {
-        PendingAction action = approved(ActionType.REFUND, "{}", "action-refund");
+        PendingAction action = approved(ActionType.ADD_TRACKING, "{}", "action-tracking");
 
         assertThatThrownBy(() -> executor.execute(action))
                 .isInstanceOf(ActionStateException.class)
                 .hasMessageContaining("cannot be executed yet");
 
         verifyNoInteractions(invoiceClient);
+        verifyNoInteractions(refundClient);
+    }
+
+    @Test
+    void refundsTheCaptureBehindTheInvoiceWithTheIdempotencyKey() {
+        when(captureLookup.forInvoice("INV2-GS4Q-CBHK-S6QM-CC5V")).thenReturn(Optional.of(
+                new InvoiceCapture("INV2-GS4Q-CBHK-S6QM-CC5V", "2S7263346H6677809", "COMPLETED",
+                        new Money("USD", "60.00"), new Money("USD", "0.00"))));
+        when(refundClient.refund(eq("2S7263346H6677809"), any(), eq("action-refund")))
+                .thenReturn(new RefundDetail("1JU08902781691411", "COMPLETED",
+                        new Money("USD", "15.00"), null));
+
+        PendingAction action = approved(ActionType.REFUND, """
+                {"invoice_id":"INV2-GS4Q-CBHK-S6QM-CC5V","currency_code":"usd","amount":"15.00",
+                 "note_to_payer":"Sorry about the damaged item"}
+                """, "action-refund");
+
+        assertThat(executor.execute(action)).isEqualTo("1JU08902781691411");
+
+        ArgumentCaptor<RefundRequest> captor = ArgumentCaptor.forClass(RefundRequest.class);
+        verify(refundClient).refund(eq("2S7263346H6677809"), captor.capture(), eq("action-refund"));
+        assertThat(captor.getValue().amount()).isEqualTo(new Money("USD", "15.00"));
+        assertThat(captor.getValue().invoiceId()).isEqualTo("INV2-GS4Q-CBHK-S6QM-CC5V");
+        assertThat(captor.getValue().noteToPayer()).isEqualTo("Sorry about the damaged item");
+        verifyNoInteractions(invoiceClient);
+    }
+
+    @Test
+    void refusesToRefundAnInvoiceWithNoCapture() {
+        when(captureLookup.forInvoice("INV2-GS4Q-CBHK-S6QM-CC5V")).thenReturn(Optional.empty());
+
+        PendingAction action = approved(ActionType.REFUND,
+                "{\"invoice_id\":\"INV2-GS4Q-CBHK-S6QM-CC5V\",\"currency_code\":\"USD\","
+                        + "\"amount\":\"15.00\"}", "action-refund");
+
+        assertThatThrownBy(() -> executor.execute(action))
+                .isInstanceOf(ActionExecutionException.class)
+                .hasMessageContaining("has no PayPal payment to refund");
+
+        verifyNoInteractions(refundClient);
     }
 
     @Test
