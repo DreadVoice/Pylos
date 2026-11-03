@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { describeTotal, fromHundredths, invoiceTotal, lineTotal, toHundredths } from "./money";
+import {
+  describeAmount,
+  describeTotal,
+  fromHundredths,
+  invoiceTotal,
+  lineTotal,
+  toHundredths
+} from "./money";
 
 describe("toHundredths", () => {
   it("reads plain decimals exactly", () => {
@@ -70,5 +77,30 @@ describe("describeTotal", () => {
 
   it("says so rather than showing a wrong number", () => {
     expect(describeTotal("USD", [{ quantity: "2", unit_amount: "1e3" }])).toMatch(/unavailable/);
+  });
+});
+
+describe("describeAmount", () => {
+  it("formats a valid refund amount with its currency", () => {
+    expect(describeAmount("USD", "30.00")).toBe("USD 30.00");
+    expect(describeAmount("usd", "15.5")).toBe("USD 15.50");
+    expect(describeAmount("INR", "7")).toBe("INR 7.00");
+  });
+
+  it("refuses to format anything that is not a plain decimal", () => {
+    for (const bad of ["fifty thousand", "1e3", "15.123", "", " ", "1,000.00"]) {
+      expect(describeAmount("USD", bad)).toBe("Amount must be a plain decimal such as 15.00");
+    }
+    expect(describeAmount("USD", undefined)).toBe("Amount must be a plain decimal such as 15.00");
+  });
+
+  it("refuses zero and negative refunds", () => {
+    expect(describeAmount("USD", "0")).toBe("Amount must be greater than zero");
+    expect(describeAmount("USD", "0.00")).toBe("Amount must be greater than zero");
+    expect(describeAmount("USD", "-15.00")).toBe("Amount must be greater than zero");
+  });
+
+  it("drops a missing currency rather than printing undefined", () => {
+    expect(describeAmount(undefined, "30.00")).toBe("30.00");
   });
 });

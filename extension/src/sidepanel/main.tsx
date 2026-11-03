@@ -7,13 +7,16 @@ import { describeSettingsProblem, loadSettings } from "../shared/settings";
 import { ConfirmCard, type Decision } from "./ConfirmCard";
 import "../shared/ui.css";
 
+const INVOICE_TASK = "Create the invoice we agreed in this conversation.";
+const REFUND_TASK = "Refund what we agreed on this order.";
+
 type Page = { state: "reading" } | { state: "none"; reason: string } | { state: "read"; context: PageContext };
 
 function SidePanel() {
   const [problem, setProblem] = useState<string | null>(null);
   const [page, setPage] = useState<Page>({ state: "reading" });
 
-  const [instruction, setInstruction] = useState("Create the invoice we agreed in this conversation.");
+  const [instruction, setInstruction] = useState(INVOICE_TASK);
   const [asking, setAsking] = useState(false);
   const [reply, setReply] = useState<string | null>(null);
   const [truncated, setTruncated] = useState(false);
@@ -30,6 +33,9 @@ function SidePanel() {
         ? { state: "read", context: context.context }
         : { state: "none", reason: context.reason }
     );
+    if (context.supported) {
+      setInstruction(context.context.hints.invoice_ids.length > 0 ? REFUND_TASK : INVOICE_TASK);
+    }
 
     const pending = await callApi({ method: "GET", path: "/api/actions?status=PROPOSED" });
     if (pending.ok && Array.isArray(pending.data)) {

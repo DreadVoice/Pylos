@@ -5,7 +5,7 @@ import {
   type PageHints,
   type SiteType
 } from "../shared/context";
-import { collapse, demoSiteType, matchesDemo, readThread } from "./demo";
+import { collapse, demoSiteType, matchesDemo, readDemoHints, readDemoPage } from "./demo";
 
 export type Adapter = {
   name: string;
@@ -20,7 +20,8 @@ export const adapters: Adapter[] = [
     name: "demo",
     siteType: demoSiteType,
     matches: matchesDemo,
-    extract: readThread
+    extract: readDemoPage,
+    hints: readDemoHints
   }
 ];
 

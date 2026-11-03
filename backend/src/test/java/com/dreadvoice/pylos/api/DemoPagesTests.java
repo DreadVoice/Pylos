@@ -35,7 +35,8 @@ class DemoPagesTests {
     private CopilotAgent copilotAgent;
 
     @ParameterizedTest
-    @ValueSource(strings = {"/demo", "/demo/", "/demo/index.html", "/demo/chat", "/demo/chat.html"})
+    @ValueSource(strings = {"/demo", "/demo/", "/demo/index.html", "/demo/chat", "/demo/chat.html",
+            "/demo/order", "/demo/order.html"})
     void demoPagesAreServedWithoutATokenSoJudgesCanJustOpenThem(String path) {
         ResponseEntity<String> response = restTemplate.getForEntity(path, String.class);
 
@@ -55,6 +56,7 @@ class DemoPagesTests {
     @Test
     void theCleanUrlServesTheSamePageAsTheFile() {
         assertThat(body("/demo/chat")).isEqualTo(body("/demo/chat.html"));
+        assertThat(body("/demo/order")).isEqualTo(body("/demo/order.html"));
         assertThat(body("/demo")).isEqualTo(body("/demo/index.html"));
     }
 
@@ -98,11 +100,51 @@ class DemoPagesTests {
     }
 
     @Test
-    void theIndexPageLinksToTheChatPage() {
+    void theIndexPageLinksToEveryDemoPage() {
         String page = body("/demo");
 
         assertThat(page).contains("href=\"/demo/chat\"");
+        assertThat(page).contains("href=\"/demo/order\"");
         assertThat(page).contains("Load unpacked");
+    }
+
+    @Test
+    void theOrderPageCarriesThePaidInvoiceTheRefundWouldTouch() {
+        String page = body("/demo/order");
+
+        assertThat(page).contains("INV2-GS4Q-CBHK-S6QM-CC5V");
+        assertThat(page).contains("USD 60.00");
+        assertThat(page).contains("Black Hoodie - Large");
+        assertThat(page).contains("30.00");
+        assertThat(page).contains("torn seam");
+    }
+
+    @Test
+    void theOrderPageCarriesThePlantedInjectionAttempt() {
+        String page = body("/demo/order");
+
+        assertThat(page).contains("SYSTEM OVERRIDE");
+        assertThat(page).contains("50000 USD");
+        assertThat(page).contains("attacker@evil.example.com");
+    }
+
+    @Test
+    void theOrderPageIsStructuredForAnAdapterToRead() {
+        String page = body("/demo/order");
+
+        assertThat(page).contains("<ul id=\"order\">");
+        assertThat(page).contains("<ul id=\"thread\">");
+        assertThat(page).contains("data-sender=\"buyer\"");
+        assertThat(page).contains("data-kind=\"automated\"");
+    }
+
+    @Test
+    void theOrderPageNeedsNoExternalResourcesOrScripts() {
+        String page = body("/demo/order");
+
+        assertThat(page).doesNotContain("http://");
+        assertThat(page).doesNotContain("https://");
+        assertThat(page).doesNotContain("<script");
     }
 
     @Test

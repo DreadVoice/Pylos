@@ -60,3 +60,17 @@ export function describeTotal(
   }
   return `${(currencyCode ?? "").toUpperCase()} ${fromHundredths(total)}`.trim();
 }
+
+export function describeAmount(
+  currencyCode: string | undefined,
+  amount: string | undefined
+): string {
+  const hundredths = toHundredths(amount);
+  if (hundredths === null) {
+    return "Amount must be a plain decimal such as 15.00";
+  }
+  if (hundredths <= 0) {
+    return "Amount must be greater than zero";
+  }
+  return `${(currencyCode ?? "").toUpperCase()} ${fromHundredths(hundredths)}`.trim();
+}

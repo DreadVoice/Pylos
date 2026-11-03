@@ -29,12 +29,19 @@ export type ReminderPayload = {
   note?: string;
 };
 
+export type RefundPayload = {
+  invoice_id?: string;
+  currency_code?: string;
+  amount?: string;
+  note_to_payer?: string;
+};
+
 export type ActionView = {
   id: string;
   action_type: ActionType;
   status: ActionStatus;
   summary: string;
-  payload: InvoicePayload | ReminderPayload | null;
+  payload: InvoicePayload | ReminderPayload | RefundPayload | null;
   result_reference: string | null;
   error_message: string | null;
   created_at: string;
@@ -57,6 +64,12 @@ export function isReminderPayload(
   action: ActionView
 ): action is ActionView & { payload: ReminderPayload } {
   return action.action_type === "SEND_REMINDER" && action.payload !== null;
+}
+
+export function isRefundPayload(
+  action: ActionView
+): action is ActionView & { payload: RefundPayload } {
+  return action.action_type === "REFUND" && action.payload !== null;
 }
 
 export function emptyItem(): InvoiceItem {

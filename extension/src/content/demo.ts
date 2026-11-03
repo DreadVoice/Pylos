@@ -1,9 +1,37 @@
-import type { SiteType } from "../shared/context";
+import { emptyHints, type PageHints, type SiteType } from "../shared/context";
 
 export const demoSiteType: SiteType = "DEMO";
 
+const INVOICE_ID = /INV2-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}/g;
+
 export function matchesDemo(url: URL): boolean {
   return url.pathname === "/demo" || url.pathname.startsWith("/demo/");
+}
+
+export function readDemoPage(document: Document): string {
+  return [readOrder(document), readThread(document)].filter((part) => part !== "").join("\n");
+}
+
+export function readDemoHints(document: Document): PageHints {
+  const order = document.querySelector("#order");
+  if (order === null) {
+    return emptyHints();
+  }
+
+  const found = (order.textContent ?? "").match(INVOICE_ID) ?? [];
+  return { invoice_ids: Array.from(new Set(found)), dispute_ids: [] };
+}
+
+export function readOrder(document: Document): string {
+  const order = document.querySelector("#order");
+  if (order === null) {
+    return "";
+  }
+
+  return Array.from(order.querySelectorAll("li"))
+    .map((row) => collapse(row.textContent ?? ""))
+    .filter((line) => line !== "")
+    .join("\n");
 }
 
 export function readThread(document: Document): string {

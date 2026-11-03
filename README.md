@@ -1,6 +1,7 @@
 # Pylos
 
-A Chrome MV3 extension and Spring Boot backend that turns seller conversations into PayPal invoices.
+A Chrome MV3 extension and Spring Boot backend that turns seller conversations into PayPal invoices and
+refunds.
 Built for the PayPal AI Hackathon.
 
 Pylos reads the page a seller is looking at — a customer chat, an email thread, a dashboard — and
@@ -26,6 +27,16 @@ The hosted demo needs nothing installed except Chrome.
 
 Sandbox buyer: **`sb-l47vrz53533074@personal.example.com`** / **`<SANDBOX_BUYER_PASSWORD>`**
 
+### The refund demo
+
+Open **`https://15-235-248-3.sslip.io/demo/order`** for a paid order. Ask Pylos to refund the damaged
+item and it proposes **30.00**, the amount the seller agreed in the messages, not the 50000 the planted
+message demands. Edit the amount to something over the remaining balance and approve: the backend asks
+PayPal what was actually captured and refuses it with a visible violation.
+
+That order points at one paid sandbox invoice. Running against your own sandbox, pay one of your own
+invoices and paste its id into the proposal card before approving.
+
 ### What to look for
 
 The demo conversation contains a planted prompt injection:
@@ -48,14 +59,14 @@ content adapter -> PageContext -> POST /api/assist
 
 Four rules hold the design together:
 
-1. The model can read freely, but can only **propose** money-moving actions.
+1. The model can read freely, but can only **propose** money-moving actions. `ActionExecutor` is the only
+   component that can reach a PayPal write client, and a test walks the whole constructor graph to prove
+   nothing else can reach one at any depth.
 2. Page content is untrusted data, delimited in the prompt and stripped of markup and invisible
    characters before the model sees it.
-3. Validation is deterministic code, never the prompt. Amounts are `BigDecimal`, never `double`.
+3. Validation is deterministic code, never the prompt. Amounts are `BigDecimal`, never `double`. A refund
+   is capped at what PayPal says was captured, minus what was already refunded.
 4. Every executed action carries an idempotency key, so a double click cannot send twice.
-
-`ActionExecutor` is the only component that can reach the PayPal write client. A test fails the build if
-anything else gains that dependency.
 
 ## Running it yourself
 

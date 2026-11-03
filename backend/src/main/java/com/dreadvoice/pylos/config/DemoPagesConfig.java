@@ -12,5 +12,6 @@ public class DemoPagesConfig implements WebMvcConfigurer {
         registry.addViewController("/demo").setViewName("forward:/demo/index.html");
         registry.addViewController("/demo/").setViewName("forward:/demo/index.html");
         registry.addViewController("/demo/chat").setViewName("forward:/demo/chat.html");
+        registry.addViewController("/demo/order").setViewName("forward:/demo/order.html");
     }
 }

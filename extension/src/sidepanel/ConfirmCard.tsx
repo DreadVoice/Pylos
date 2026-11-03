@@ -4,9 +4,10 @@ import {
   type ActionView,
   type InvoiceItem,
   type InvoicePayload,
+  type RefundPayload,
   type ReminderPayload
 } from "../shared/actions";
-import { describeTotal } from "../shared/money";
+import { describeAmount, describeTotal } from "../shared/money";
 
 export type Decision = {
   ok: boolean;
@@ -80,7 +81,7 @@ export function ConfirmCard({ action, onApprove, onReject }: Props) {
       {!settled && (
         <p className="actions">
           <button onClick={() => void decide("approve")} disabled={busy !== null}>
-            {busy === "approve" ? "Sending…" : "Approve and send"}
+            {approveLabel(current.action_type, busy === "approve")}
           </button>
           <button className="ghost" onClick={() => void decide("reject")} disabled={busy !== null}>
             {busy === "reject" ? "Rejecting…" : "Reject"}
@@ -91,9 +92,21 @@ export function ConfirmCard({ action, onApprove, onReject }: Props) {
   );
 }
 
+function approveLabel(actionType: ActionView["action_type"], busy: boolean): string {
+  if (actionType === "REFUND") {
+    return busy ? "Refunding…" : "Approve and refund";
+  }
+  return busy ? "Sending…" : "Approve and send";
+}
+
 function Settled({ action }: { action: ActionView }) {
   if (action.status === "EXECUTED") {
-    return <p className="status good">Sent. PayPal reference {action.result_reference}</p>;
+    const what = action.action_type === "REFUND" ? "Refunded" : "Sent";
+    return (
+      <p className="status good">
+        {what}. PayPal reference {action.result_reference}
+      </p>
+    );
   }
   if (action.status === "REJECTED") {
     return <p className="status">Rejected. Nothing was sent.</p>;
@@ -122,6 +135,15 @@ function Editor({ action, payload, onChange, disabled }: EditorProps) {
     return (
       <ReminderEditor
         payload={(payload ?? {}) as ReminderPayload}
+        onChange={onChange}
+        disabled={disabled}
+      />
+    );
+  }
+  if (action.action_type === "REFUND") {
+    return (
+      <RefundEditor
+        payload={(payload ?? {}) as RefundPayload}
         onChange={onChange}
         disabled={disabled}
       />
@@ -215,6 +237,60 @@ function InvoiceEditor({
           value={payload.note ?? ""}
           disabled={disabled}
           onChange={(event) => onChange({ ...payload, note: event.target.value })}
+        />
+      </label>
+    </>
+  );
+}
+
+function RefundEditor({
+  payload,
+  onChange,
+  disabled
+}: {
+  payload: RefundPayload;
+  onChange: (payload: RefundPayload) => void;
+  disabled: boolean;
+}) {
+  return (
+    <>
+      <label>
+        <span>Invoice</span>
+        <input
+          value={payload.invoice_id ?? ""}
+          disabled={disabled}
+          onChange={(event) => onChange({ ...payload, invoice_id: event.target.value })}
+        />
+      </label>
+
+      <label>
+        <span>Currency</span>
+        <input
+          value={payload.currency_code ?? ""}
+          disabled={disabled}
+          onChange={(event) => onChange({ ...payload, currency_code: event.target.value })}
+        />
+      </label>
+
+      <label>
+        <span>Refund amount</span>
+        <input
+          value={payload.amount ?? ""}
+          disabled={disabled}
+          onChange={(event) => onChange({ ...payload, amount: event.target.value })}
+        />
+      </label>
+
+      <p className="actions">
+        <span className="total">{describeAmount(payload.currency_code, payload.amount)}</span>
+      </p>
+
+      <label>
+        <span>Note to buyer</span>
+        <input
+          value={payload.note_to_payer ?? ""}
+          disabled={disabled}
+          onChange={(event) => onChange({ ...payload, note_to_payer: event.target.value })}
         />
       </label>
     </>
