@@ -1,6 +1,7 @@
 package com.dreadvoice.pylos.action;
 
 import com.dreadvoice.pylos.paypal.InvoiceClient;
+import com.dreadvoice.pylos.paypal.RefundClient;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.type.filter.AssignableTypeFilter;
@@ -21,17 +22,26 @@ class PayPalWriteAccessGuardTests {
 
     @Test
     void actionExecutorIsTheOnlyComponentAllowedToHoldTheInvoiceClient() {
-        Set<String> holders = componentsDependingOnInvoiceClient();
+        Set<String> holders = componentsDependingOn(InvoiceClient.class);
 
         assertThat(holders).containsExactly(ActionExecutor.class.getName());
     }
 
     @Test
-    void neitherAgentToolCanReachTheInvoiceClient() {
-        assertThat(constructorParameterTypes(com.dreadvoice.pylos.agent.ProposeTools.class))
-                .noneMatch(InvoiceClient.class::isAssignableFrom);
-        assertThat(constructorParameterTypes(com.dreadvoice.pylos.agent.ReadTools.class))
-                .noneMatch(InvoiceClient.class::isAssignableFrom);
+    void nothingOutsideActionExecutorMayHoldTheRefundClient() {
+        Set<String> holders = componentsDependingOn(RefundClient.class);
+
+        assertThat(holders).isSubsetOf(ActionExecutor.class.getName());
+    }
+
+    @Test
+    void neitherAgentToolCanReachAWriteClient() {
+        for (Class<?> tool : List.of(com.dreadvoice.pylos.agent.ProposeTools.class,
+                com.dreadvoice.pylos.agent.ReadTools.class)) {
+            assertThat(constructorParameterTypes(tool))
+                    .noneMatch(InvoiceClient.class::isAssignableFrom)
+                    .noneMatch(RefundClient.class::isAssignableFrom);
+        }
     }
 
     @Test
@@ -48,7 +58,7 @@ class PayPalWriteAccessGuardTests {
                 .noneMatch(type -> type.getName().startsWith(PAYPAL_PACKAGE));
     }
 
-    private Set<String> componentsDependingOnInvoiceClient() {
+    private Set<String> componentsDependingOn(Class<?> writeClient) {
         ClassPathScanningCandidateComponentProvider scanner =
                 new ClassPathScanningCandidateComponentProvider(false);
         scanner.addIncludeFilter(new AssignableTypeFilter(Object.class));
@@ -60,7 +70,7 @@ class PayPalWriteAccessGuardTests {
                 .filter(type -> type.isAnnotationPresent(Component.class)
                         || type.isAnnotationPresent(org.springframework.stereotype.Service.class))
                 .filter(type -> constructorParameterTypes(type).stream()
-                        .anyMatch(InvoiceClient.class::isAssignableFrom))
+                        .anyMatch(writeClient::isAssignableFrom))
                 .map(Class::getName)
                 .collect(Collectors.toCollection(java.util.TreeSet::new));
     }

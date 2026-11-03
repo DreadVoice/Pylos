@@ -48,7 +48,7 @@ class ActionExecutorTests {
     void sendsInvoiceMappedFromPayloadWithTheIdempotencyKey() {
         when(invoiceClient.generateNextInvoiceNumber()).thenReturn("0042");
         when(invoiceClient.createAndSend(any(), any(), eq("action-42")))
-                .thenReturn(new InvoiceSummary("INV2-NEW", "SENT", null, null, null, null, null));
+                .thenReturn(new InvoiceSummary("INV2-NEW", "SENT", null, null, null, null, null, null, null));
 
         PendingAction action = approved(ActionType.SEND_INVOICE, """
                 {"recipient_email":"buyer@personal.example.com","recipient_given_name":"Test",

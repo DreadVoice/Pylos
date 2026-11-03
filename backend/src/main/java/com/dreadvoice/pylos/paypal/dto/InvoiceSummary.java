@@ -9,6 +9,8 @@ public record InvoiceSummary(
         Money amount,
         Money dueAmount,
         List<InvoiceRecipient> primaryRecipients,
-        List<InvoiceLink> links
+        List<InvoiceLink> links,
+        InvoicePayments payments,
+        InvoiceRefunds refunds
 ) {
 }
