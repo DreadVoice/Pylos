@@ -2,10 +2,18 @@ import { StrictMode, useCallback, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { ActionView, AssistResponse } from "../shared/actions";
 import type { PageContext } from "../shared/context";
-import { callApi, requestPageContext } from "../shared/messages";
+import { callApi, refreshBadge, requestPageContext } from "../shared/messages";
+import {
+  emptyNotifications,
+  readNotifications,
+  type NotificationsView
+} from "../shared/notifications";
 import { describeSettingsProblem, loadSettings } from "../shared/settings";
 import { ConfirmCard, type Decision } from "./ConfirmCard";
+import { Notifications } from "./Notifications";
 import "../shared/ui.css";
+
+const POLL_MS = 30_000;
 
 const INVOICE_TASK = "Create the invoice we agreed in this conversation.";
 const REFUND_TASK = "Refund what we agreed on this order.";
@@ -22,6 +30,9 @@ function SidePanel() {
   const [truncated, setTruncated] = useState(false);
   const [askError, setAskError] = useState<string | null>(null);
   const [actions, setActions] = useState<ActionView[]>([]);
+  const [notifications, setNotifications] = useState<NotificationsView>(emptyNotifications());
+  const [marking, setMarking] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
 
   const refresh = useCallback(async () => {
     setProblem(describeSettingsProblem(await loadSettings()));
@@ -41,11 +52,38 @@ function SidePanel() {
     if (pending.ok && Array.isArray(pending.data)) {
       setActions(pending.data as ActionView[]);
     }
+
+    await loadNotifications();
   }, []);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(Date.now());
+      void loadNotifications();
+    }, POLL_MS);
+    return () => clearInterval(timer);
+  }, []);
+
+  async function loadNotifications() {
+    const result = await callApi({ method: "GET", path: "/api/notifications" });
+    if (result.ok) {
+      setNotifications(readNotifications(result.data));
+    }
+  }
+
+  async function markRead() {
+    setMarking(true);
+    const result = await callApi({ method: "POST", path: "/api/notifications/mark-read" });
+    setMarking(false);
+    if (result.ok) {
+      setNotifications(readNotifications(result.data));
+      await refreshBadge();
+    }
+  }
 
   async function ask() {
     if (page.state !== "read") {
@@ -122,6 +160,8 @@ function SidePanel() {
       {askError !== null && <p className="status bad">{askError}</p>}
       {reply !== null && <p className="status">{reply}</p>}
       {truncated && <p className="hint">That conversation was long, so only the first part was read.</p>}
+
+      <Notifications view={notifications} now={now} busy={marking} onMarkRead={() => void markRead()} />
 
       {actions.length === 0 && !asking && (
         <p className="hint">No proposals yet. Ask Pylos to invoice the conversation.</p>

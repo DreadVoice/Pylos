@@ -206,6 +206,42 @@ class WebhookEventHandlerTests {
     }
 
     @Test
+    void readsTheOlderAmountSpellingPayPalStillSends() {
+        Notification notification = handler.handle("""
+                {
+                  "id": "WH-REFUND-V1",
+                  "event_type": "PAYMENT.CAPTURE.REFUNDED",
+                  "resource": {
+                    "id": "8VC964970N548345V",
+                    "state": "completed",
+                    "amount": { "total": "-0.15", "currency": "USD" }
+                  }
+                }
+                """).orElseThrow();
+
+        assertThat(notification.getSummary()).isEqualTo("A refund of USD -0.15 completed");
+        assertThat(notification.getCurrencyCode()).isEqualTo("USD");
+        assertThat(notification.getAmount()).isEqualTo("-0.15");
+    }
+
+    @Test
+    void prefersTheCurrentSpellingWhenBothArePresent() {
+        Notification notification = handler.handle("""
+                {
+                  "id": "WH-REFUND-BOTH",
+                  "event_type": "PAYMENT.CAPTURE.REFUNDED",
+                  "resource": {
+                    "amount": { "currency_code": "USD", "value": "30.00",
+                                "currency": "INR", "total": "999.00" }
+                  }
+                }
+                """).orElseThrow();
+
+        assertThat(notification.getCurrencyCode()).isEqualTo("USD");
+        assertThat(notification.getAmount()).isEqualTo("30.00");
+    }
+
+    @Test
     void describesARefundWithNoAmountWithoutInventingOne() {
         Notification notification = handler.handle("""
                 {

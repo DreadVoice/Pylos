@@ -65,10 +65,17 @@ describe("manifest", () => {
   });
 
   it("asks for only the permissions it uses", () => {
-    expect(manifest.permissions).toEqual(["sidePanel", "storage", "activeTab"]);
+    expect(manifest.permissions).toEqual(["sidePanel", "storage", "activeTab", "alarms"]);
     expect(manifest.permissions).not.toContain("tabs");
     expect(manifest.permissions).not.toContain("cookies");
     expect(manifest.permissions).not.toContain("webRequest");
+    expect(manifest.permissions).not.toContain("notifications");
+  });
+
+  it("polls for PayPal activity on an alarm rather than keeping a worker awake", () => {
+    expect(manifest.permissions).toContain("alarms");
+    expect(readFileSync("src/background/service-worker.ts", "utf8"))
+      .toContain("chrome.alarms.create");
   });
 
   it("treats wildcards and plain http on a remote host as unacceptable", () => {

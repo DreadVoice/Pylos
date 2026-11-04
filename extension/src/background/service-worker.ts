@@ -1,5 +1,6 @@
 import {
   isApiRequest,
+  isBadgeRequest,
   isContextRequest,
   type ApiRequest,
   type ApiResult,
@@ -7,22 +8,44 @@ import {
   type ExtractRequest
 } from "../shared/messages";
 import { apiUrl, describeSettingsProblem, loadSettings } from "../shared/settings";
+import { badgeText, readNotifications } from "../shared/notifications";
+
+const POLL_ALARM = "pylos.notifications";
+const POLL_MINUTES = 1;
+const BADGE_COLOUR = "#2f5d94";
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.sidePanel
     .setPanelBehavior({ openPanelOnActionClick: true })
     .catch((error: unknown) => console.warn("Pylos: could not set panel behaviour", error));
+  startPolling();
   void reportConnection();
+  void updateBadge();
 });
 
 chrome.runtime.onStartup.addListener(() => {
+  startPolling();
   void reportConnection();
+  void updateBadge();
+});
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === POLL_ALARM) {
+    void updateBadge();
+  }
 });
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (isApiRequest(message)) {
     request(message).then(sendResponse, (error: unknown) =>
       sendResponse({ ok: false, status: 0, error: String(error) } satisfies ApiResult)
+    );
+    return true;
+  }
+  if (isBadgeRequest(message)) {
+    updateBadge().then(
+      () => sendResponse({ ok: true }),
+      (error: unknown) => sendResponse({ ok: false, error: String(error) })
     );
     return true;
   }
@@ -34,6 +57,22 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
   return false;
 });
+
+function startPolling(): void {
+  chrome.alarms.create(POLL_ALARM, { periodInMinutes: POLL_MINUTES });
+}
+
+async function updateBadge(): Promise<void> {
+  const result = await request({
+    kind: "pylos.api",
+    method: "GET",
+    path: "/api/notifications?unread=true"
+  });
+
+  const unread = result.ok ? readNotifications(result.data).unread_count : 0;
+  await chrome.action.setBadgeBackgroundColor({ color: BADGE_COLOUR });
+  await chrome.action.setBadgeText({ text: badgeText(unread) });
+}
 
 async function readActivePage(): Promise<ContextResult> {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });

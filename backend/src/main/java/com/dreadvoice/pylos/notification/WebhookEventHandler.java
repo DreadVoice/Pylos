@@ -88,8 +88,8 @@ public class WebhookEventHandler {
                 truncate(eventType, 64),
                 truncate(summary, MAX_SUMMARY),
                 truncate(invoiceId, MAX_ID),
-                truncate(text(amount, "currency_code"), 8),
-                truncate(text(amount, "value"), 32),
+                truncate(currencyOf(amount), 8),
+                truncate(valueOf(amount), 32),
                 occurredAt(event));
 
         try {
@@ -127,12 +127,22 @@ public class WebhookEventHandler {
     }
 
     private String describe(JsonNode amount) {
-        String currency = text(amount, "currency_code");
-        String value = text(amount, "value");
+        String currency = currencyOf(amount);
+        String value = valueOf(amount);
         if (!StringUtils.hasText(value)) {
             return "an unknown amount";
         }
         return StringUtils.hasText(currency) ? currency + " " + value : value;
+    }
+
+    private static String currencyOf(JsonNode amount) {
+        String currencyCode = text(amount, "currency_code");
+        return currencyCode != null ? currencyCode : text(amount, "currency");
+    }
+
+    private static String valueOf(JsonNode amount) {
+        String value = text(amount, "value");
+        return value != null ? value : text(amount, "total");
     }
 
     private static String text(JsonNode node, String field) {

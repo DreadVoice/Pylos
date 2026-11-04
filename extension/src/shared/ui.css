@@ -204,3 +204,50 @@ h1, .lede, .hint, .status, .total, .card header b, label span {
     flex: 0 1 70px;
     width: auto;
 }
+
+ul.feed {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.feed li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 8px;
+    padding: 7px 0 7px 10px;
+    border-left: 3px solid #3f6fa8;
+    border-bottom: 1px solid #f0f3f6;
+    font-size: 13px;
+}
+
+.feed li:last-child {
+    border-bottom: 0;
+}
+
+.feed li.seen {
+    border-left-color: #e4e9ef;
+    color: #6b7a8d;
+}
+
+.feed li > span:first-child {
+    flex: 1 1 140px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.feed .money {
+    font-variant-numeric: tabular-nums;
+}
+
+.feed .when {
+    color: #8a97a8;
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.tag-new {
+    background: #dce9f7;
+    color: #24507f;
+}

@@ -15,6 +15,8 @@ export type ContextRequest = { kind: "pylos.context" };
 
 export type ExtractRequest = { kind: "pylos.extract" };
 
+export type BadgeRequest = { kind: "pylos.badge" };
+
 export type ContextResult =
   | { supported: true; context: PageContext }
   | { supported: false; reason: string };
@@ -25,6 +27,10 @@ export function isApiRequest(message: unknown): message is ApiRequest {
 
 export function isContextRequest(message: unknown): message is ContextRequest {
   return kindOf(message) === "pylos.context";
+}
+
+export function isBadgeRequest(message: unknown): message is BadgeRequest {
+  return kindOf(message) === "pylos.badge";
 }
 
 function kindOf(message: unknown): string | null {
@@ -41,4 +47,8 @@ export async function callApi(request: Omit<ApiRequest, "kind">): Promise<ApiRes
 
 export async function requestPageContext(): Promise<ContextResult> {
   return chrome.runtime.sendMessage({ kind: "pylos.context" } satisfies ContextRequest);
+}
+
+export async function refreshBadge(): Promise<void> {
+  await chrome.runtime.sendMessage({ kind: "pylos.badge" } satisfies BadgeRequest);
 }
