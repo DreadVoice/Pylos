@@ -180,6 +180,40 @@ Replace `<DEPLOYED_URL>`, `<DEMO_API_TOKEN>`, `<SANDBOX_BUYER_EMAIL>` and `<SAND
 `README.md` with the real values before submitting. The demo token is published to judges by design, so
 it must be the server token and not one you use anywhere else.
 
+## Doing all of that with the script
+
+`deploy/remote-deploy.sh` does steps 2 to 7 over SSH. Run it from the repository root, with a filled in
+`backend/.env`:
+
+```bash
+deploy/remote-deploy.sh 203.0.113.10 ubuntu pylos.yourdomain.com
+```
+
+It is safe to run again. On the first run it generates a `PYLOS_API_TOKEN` and a `POSTGRES_PASSWORD`;
+on every run after that it reads the ones already on the server and keeps them, so the token you
+published to judges stays valid and the app keeps the password its database was created with. It prints
+which it did:
+
+```
+api token        : reused from the server
+database password: reused from the server
+```
+
+`PAYPAL_WEBHOOK_ID` is taken from `backend/.env` if set there, and otherwise kept from the server, so
+registering the webhook once is enough.
+
+`ROTATE_SECRETS=1` forces a new token and password. Rotating the **database** password this way is not
+enough on its own: Postgres only reads `POSTGRES_PASSWORD` when it first creates its data directory, so
+the existing `pylos-db` volume would keep the old password and the app would fail to connect. Rotating
+the API token alone is harmless — update `README.md` and the extension options afterwards.
+
+On Windows, `SSH_BIN` points the script at a specific ssh binary, which matters when Git Bash's ssh
+cannot see the Windows ssh-agent:
+
+```bash
+SSH_BIN=/c/Windows/System32/OpenSSH/ssh.exe deploy/remote-deploy.sh 203.0.113.10 ubuntu pylos.yourdomain.com
+```
+
 ## Updating a running deployment
 
 ```bash

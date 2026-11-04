@@ -37,11 +37,14 @@ for required in PAYPAL_CLIENT_ID PAYPAL_CLIENT_SECRET GEMINI_API_KEY; do
   fi
 done
 
-SERVER_TOKEN=$(head -c 32 /dev/urandom | base64 | tr -d '/+=' | cut -c1-32)
-DB_PASSWORD=$(head -c 24 /dev/urandom | base64 | tr -d '/+=' | cut -c1-24)
+PAYPAL_WEBHOOK_ID=$(read_local PAYPAL_WEBHOOK_ID)
 
 SSH_BIN="${SSH_BIN:-ssh}"
 SSH="$SSH_BIN -o StrictHostKeyChecking=accept-new ${SSH_USER}@${HOST}"
+
+read_server() {
+  $SSH "grep '^$1=' ~/Pylos/.env 2>/dev/null | head -1 | cut -d= -f2- | tr -d '\r'" 2>/dev/null || true
+}
 
 echo "==> checking dns for $DOMAIN"
 RESOLVED=$(getent hosts "$DOMAIN" 2>/dev/null | awk '{print $1}' | head -1 || nslookup "$DOMAIN" 2>/dev/null | awk '/^Address: /{print $2}' | tail -1 || true)
@@ -70,6 +73,52 @@ $SSH "set -e
   fi
   cd ~/Pylos && git log --oneline -1"
 
+echo "==> reading the secrets this server already has"
+ENV_STATE=$($SSH 'if [ -f ~/Pylos/.env ]; then echo present; else echo absent; fi')
+
+EXISTING_TOKEN=""
+EXISTING_DB_PASSWORD=""
+EXISTING_WEBHOOK_ID=""
+if [ "$ENV_STATE" = "present" ]; then
+  EXISTING_TOKEN=$(read_server PYLOS_API_TOKEN)
+  EXISTING_DB_PASSWORD=$(read_server POSTGRES_PASSWORD)
+  EXISTING_WEBHOOK_ID=$(read_server PAYPAL_WEBHOOK_ID)
+elif [ "$ENV_STATE" != "absent" ]; then
+  echo "could not tell whether ~/Pylos/.env exists; refusing to overwrite it" >&2
+  exit 1
+else
+  echo "no environment file on the server yet, so this is a first deployment"
+fi
+
+if [ "${ROTATE_SECRETS:-0}" = "1" ]; then
+  EXISTING_TOKEN=""
+  EXISTING_DB_PASSWORD=""
+  echo "ROTATE_SECRETS=1, so a new api token and database password will be generated"
+  echo "the database keeps the password it was created with, so rotating it needs the"
+  echo "pylos-db volume to be recreated as well" >&2
+fi
+
+if [ -n "$EXISTING_TOKEN" ]; then
+  SERVER_TOKEN="$EXISTING_TOKEN"
+  TOKEN_ORIGIN="reused from the server"
+else
+  SERVER_TOKEN=$(head -c 32 /dev/urandom | base64 | tr -d '/+=' | cut -c1-32)
+  TOKEN_ORIGIN="newly generated"
+fi
+
+if [ -n "$EXISTING_DB_PASSWORD" ]; then
+  DB_PASSWORD="$EXISTING_DB_PASSWORD"
+  DB_ORIGIN="reused from the server"
+else
+  DB_PASSWORD=$(head -c 24 /dev/urandom | base64 | tr -d '/+=' | cut -c1-24)
+  DB_ORIGIN="newly generated"
+fi
+
+WEBHOOK_ID="${PAYPAL_WEBHOOK_ID:-$EXISTING_WEBHOOK_ID}"
+
+echo "api token        : $TOKEN_ORIGIN"
+echo "database password: $DB_ORIGIN"
+
 echo "==> writing the server environment file"
 $SSH "cat > ~/Pylos/.env" <<EOF
 PYLOS_DOMAIN=${DOMAIN}
@@ -80,7 +129,7 @@ PYLOS_ALLOWED_ORIGINS=chrome-extension://*
 PAYPAL_CLIENT_ID=${PAYPAL_CLIENT_ID}
 PAYPAL_CLIENT_SECRET=${PAYPAL_CLIENT_SECRET}
 PAYPAL_BASE_URL=${PAYPAL_BASE_URL:-https://api-m.sandbox.paypal.com}
-PAYPAL_WEBHOOK_ID=
+PAYPAL_WEBHOOK_ID=${WEBHOOK_ID}
 GEMINI_API_KEY=${GEMINI_API_KEY}
 GEMINI_MODEL=${GEMINI_MODEL:-gemini-3.5-flash}
 GEMINI_FALLBACK_MODEL=${GEMINI_FALLBACK_MODEL:-gemini-3.5-flash-lite}
@@ -121,14 +170,23 @@ echo -n "GET https://${DOMAIN}/api/actions -> "
 curl -s -o /dev/null -w '%{http_code}\n' --max-time 20 "https://${DOMAIN}/api/actions" || echo "unreachable"
 echo -n "with the token                    -> "
 curl -s -o /dev/null -w '%{http_code}\n' --max-time 20 -H "Authorization: Bearer ${SERVER_TOKEN}" "https://${DOMAIN}/api/actions" || echo "unreachable"
+echo -n "POST https://${DOMAIN}/webhooks/paypal -> "
+curl -s -o /dev/null -w '%{http_code}\n' --max-time 20 -X POST -H 'Content-Type: application/json' -d '{}' "https://${DOMAIN}/webhooks/paypal" || echo "unreachable"
 
 echo
 echo "================ deployment summary ================"
 echo "demo page   : https://${DOMAIN}/demo/chat"
+echo "order page  : https://${DOMAIN}/demo/order"
 echo "backend url : https://${DOMAIN}"
-echo "api token   : ${SERVER_TOKEN}"
+echo "api token   : ${SERVER_TOKEN} (${TOKEN_ORIGIN})"
+if [ -z "$WEBHOOK_ID" ]; then
+  echo "webhook id  : not set, so every PayPal webhook will be rejected with 401"
+else
+  echo "webhook id  : ${WEBHOOK_ID}"
+fi
 echo
 echo "The /api/actions check above must say 401 without the token and 200 with it."
+echo "The webhook check must say 401: it has no PayPal signature."
 echo "Put the backend url and api token in README.md and in the extension options."
 echo "Add https://${DOMAIN}/* to host_permissions and content_scripts in"
 echo "extension/public/manifest.json, then run npm run verify and rebuild."
