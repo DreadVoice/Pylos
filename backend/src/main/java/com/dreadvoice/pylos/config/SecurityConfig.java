@@ -47,6 +47,7 @@ public class SecurityConfig {
                 .addFilterBefore(new ApiTokenFilter(properties), UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(requests -> requests
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/webhooks/paypal").permitAll()
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll())
                 .build();

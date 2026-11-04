@@ -2,6 +2,8 @@ package com.dreadvoice.pylos.config;
 
 import com.dreadvoice.pylos.action.ActionService;
 import com.dreadvoice.pylos.agent.CopilotAgent;
+import com.dreadvoice.pylos.notification.WebhookEventHandler;
+import com.dreadvoice.pylos.paypal.WebhookVerifier;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -49,6 +51,41 @@ class ApiSecurityTests {
 
     @MockitoBean
     private CopilotAgent copilotAgent;
+
+    @MockitoBean
+    private WebhookVerifier webhookVerifier;
+
+    @MockitoBean
+    private WebhookEventHandler webhookEventHandler;
+
+    @Test
+    void rejectsNotificationRequestsWithNoToken() throws Exception {
+        mockMvc.perform(get("/api/notifications"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void letsPayPalReachTheWebhookWithoutAnApiToken() throws Exception {
+        when(webhookVerifier.verify(any(), any())).thenReturn(true);
+        when(webhookEventHandler.handle(any())).thenReturn(java.util.Optional.empty());
+
+        mockMvc.perform(post("/webhooks/paypal")
+                        .contentType("application/json")
+                        .content("{\"id\":\"WH-1\",\"event_type\":\"INVOICING.INVOICE.PAID\"}"))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void theOpenWebhookStillRefusesAnEventItCannotVerify() throws Exception {
+        when(webhookVerifier.verify(any(), any())).thenReturn(false);
+
+        mockMvc.perform(post("/webhooks/paypal")
+                        .contentType("application/json")
+                        .content("{\"id\":\"WH-1\",\"event_type\":\"INVOICING.INVOICE.PAID\"}"))
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(webhookEventHandler);
+    }
 
     @Test
     void rejectsApiRequestsWithNoToken() throws Exception {

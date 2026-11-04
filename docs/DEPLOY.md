@@ -130,7 +130,51 @@ cd dist && zip -r ../pylos-extension.zip .
 `npm run verify` enforces that every host pattern is a specific `https` host or localhost. A wildcard
 or a plain `http` remote host fails the build.
 
-## 9. Fill in the README placeholders
+## 9. Register the PayPal webhook
+
+Webhooks are what make the side panel light up when a buyer pays or a refund settles. PayPal has to be
+able to reach the deployment over HTTPS, which it now can.
+
+In the [developer dashboard](https://developer.paypal.com), open your sandbox REST app, scroll to
+**Webhooks**, and add one:
+
+| Field | Value |
+|---|---|
+| Webhook URL | `https://pylos.yourdomain.com/webhooks/paypal` |
+| Event types | `INVOICING.INVOICE.PAID`, `INVOICING.INVOICE.CANCELLED`, `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.REFUNDED` |
+
+Copy the webhook id PayPal shows into `PAYPAL_WEBHOOK_ID` in `.env` and restart:
+
+```bash
+docker compose up -d
+```
+
+The same thing over the API, if you prefer:
+
+```bash
+TOKEN=$(curl -s -u "$PAYPAL_CLIENT_ID:$PAYPAL_CLIENT_SECRET"   -d grant_type=client_credentials   https://api-m.sandbox.paypal.com/v1/oauth2/token | python -c 'import sys,json;print(json.load(sys.stdin)["access_token"])')
+
+curl -s -X POST https://api-m.sandbox.paypal.com/v1/notifications/webhooks   -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json'   -d '{"url":"https://pylos.yourdomain.com/webhooks/paypal",
+       "event_types":[{"name":"INVOICING.INVOICE.PAID"},
+                      {"name":"INVOICING.INVOICE.CANCELLED"},
+                      {"name":"PAYMENT.CAPTURE.COMPLETED"},
+                      {"name":"PAYMENT.CAPTURE.REFUNDED"}]}'
+```
+
+`PAYPAL_WEBHOOK_ID` is what the signature check is made against. **Until it is set, every webhook is
+rejected with a 401** — the verifier fails closed rather than trusting an unverified event. That is the
+safe default, but it does mean an unset id looks like a working deployment with notifications that never
+arrive. Check for this in the logs:
+
+```bash
+docker compose logs app | grep 'webhook-id is not configured'
+```
+
+The webhook endpoint is the one path outside `/api` that needs no bearer token, because PayPal cannot
+send one. It is protected instead by asking PayPal to verify the signature of every event, and the
+certificate url is checked to be a `paypal.com` host before anything is sent.
+
+## 10. Fill in the README placeholders
 
 Replace `<DEPLOYED_URL>`, `<DEMO_API_TOKEN>`, `<SANDBOX_BUYER_EMAIL>` and `<SANDBOX_BUYER_PASSWORD>` in
 `README.md` with the real values before submitting. The demo token is published to judges by design, so
