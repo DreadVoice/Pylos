@@ -92,10 +92,15 @@ fi
 
 if [ "${ROTATE_SECRETS:-0}" = "1" ]; then
   EXISTING_TOKEN=""
+  echo "ROTATE_SECRETS=1, so a new api token will be generated"
+fi
+
+if [ "${ROTATE_DB_PASSWORD:-0}" = "1" ]; then
   EXISTING_DB_PASSWORD=""
-  echo "ROTATE_SECRETS=1, so a new api token and database password will be generated"
-  echo "the database keeps the password it was created with, so rotating it needs the"
-  echo "pylos-db volume to be recreated as well" >&2
+  echo "ROTATE_DB_PASSWORD=1, so a new database password will be generated" >&2
+  echo "Postgres only reads POSTGRES_PASSWORD when it first creates its data directory, so" >&2
+  echo "this takes effect only if the pylos-db volume is recreated, which discards every" >&2
+  echo "stored action and notification" >&2
 fi
 
 if [ -n "$EXISTING_TOKEN" ]; then

@@ -17,7 +17,7 @@ The hosted demo needs nothing installed except Chrome.
    the release zip
 3. On the Pylos card, click **Details → Extension options** and set:
    - Backend URL: **`https://15-235-248-3.sslip.io`**
-   - API token: **`<DEMO_API_TOKEN>`**
+   - API token: **`k6jIUIG01rhmPuD94EQtEAentWsgaDTR`**
 4. Click **Test connection**. It should say *Connected*.
 5. Reload the demo chat tab, then click the **Pylos** toolbar icon to open the side panel.
 6. Click **Ask Pylos**. It reads the conversation and proposes an invoice. This can take up to a minute.
@@ -25,7 +25,7 @@ The hosted demo needs nothing installed except Chrome.
 8. Sign in at [sandbox.paypal.com](https://sandbox.paypal.com) as the sandbox buyer below to see the
    invoice arrive with the amount you edited.
 
-Sandbox buyer: **`sb-l47vrz53533074@personal.example.com`** / **`<SANDBOX_BUYER_PASSWORD>`**
+Sandbox buyer: **`sb-l47vrz53533074@personal.example.com`** / **`ys@7yr@C`**
 
 ### The refund demo
 
@@ -48,6 +48,13 @@ Pylos reads that text, and still proposes only an invoice to the real buyer. Thr
 it: page text is wrapped in delimiters and labelled untrusted, the model physically cannot call a
 money-moving tool, and the amount is validated in code before anything is sent.
 
+### Activity from PayPal
+
+When a buyer pays, or a refund settles, PayPal posts the event to `/webhooks/paypal`. That endpoint takes
+no API token, because PayPal cannot send one; instead every event's signature is verified with PayPal
+before it is recorded, and the certificate url is checked to be a `paypal.com` host first. Verified
+events appear in the side panel and on the toolbar badge.
+
 ## How it works
 
 ```
@@ -55,6 +62,9 @@ content adapter -> PageContext -> POST /api/assist
    -> CopilotAgent (read tools run; propose tools only write a PendingAction row)
    -> confirm cards in the side panel
    -> seller edits and approves -> ActionValidator -> ActionExecutor -> PayPal
+
+PayPal -> POST /webhooks/paypal -> signature verified with PayPal -> Notification
+   -> side panel activity feed and toolbar badge
 ```
 
 Four rules hold the design together:

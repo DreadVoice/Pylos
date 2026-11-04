@@ -180,6 +180,35 @@ Replace `<DEPLOYED_URL>`, `<DEMO_API_TOKEN>`, `<SANDBOX_BUYER_EMAIL>` and `<SAND
 `README.md` with the real values before submitting. The demo token is published to judges by design, so
 it must be the server token and not one you use anywhere else.
 
+Read the token off the server rather than inventing one:
+
+```bash
+ssh ubuntu@your.server 'grep "^PYLOS_API_TOKEN=" ~/Pylos/.env | cut -d= -f2-'
+```
+
+The sandbox buyer password is the one you set on the personal account under **Testing Tools → Sandbox
+accounts** at [developer.paypal.com](https://developer.paypal.com).
+
+### What publishing the token means, and undoing it
+
+A reader of the repository can call every `/api` endpoint on the deployment. That is the point — judges
+need it — but be clear about the exposure:
+
+- The deployment is sandbox only (`PAYPAL_BASE_URL=https://api-m.sandbox.paypal.com`), so no real money
+  can move. Keep it that way for as long as the token is published.
+- A caller can create and send sandbox invoices, propose actions, and refund **within** what PayPal says
+  was captured. The refund cap is enforced against PayPal, not against anything a caller controls.
+- A caller can spend your Gemini quota through `/api/assist`. There is no rate limiting on it.
+
+Once judging is over, rotate the token and take it out of `README.md`:
+
+```bash
+ROTATE_SECRETS=1 deploy/remote-deploy.sh <host> <ssh-user> <domain>
+```
+
+That regenerates the API token while keeping the database password, so the app still reaches its
+database. Update the extension options afterwards.
+
 ## Doing all of that with the script
 
 `deploy/remote-deploy.sh` does steps 2 to 7 over SSH. Run it from the repository root, with a filled in
@@ -202,10 +231,11 @@ database password: reused from the server
 `PAYPAL_WEBHOOK_ID` is taken from `backend/.env` if set there, and otherwise kept from the server, so
 registering the webhook once is enough.
 
-`ROTATE_SECRETS=1` forces a new token and password. Rotating the **database** password this way is not
-enough on its own: Postgres only reads `POSTGRES_PASSWORD` when it first creates its data directory, so
-the existing `pylos-db` volume would keep the old password and the app would fail to connect. Rotating
-the API token alone is harmless — update `README.md` and the extension options afterwards.
+`ROTATE_SECRETS=1` forces a new API token, which is harmless — update `README.md` and the extension
+options afterwards. The database password is left alone, because rotating it is not harmless: Postgres
+only reads `POSTGRES_PASSWORD` when it first creates its data directory, so a new one takes effect only
+if the `pylos-db` volume is recreated, which discards every stored action and notification.
+`ROTATE_DB_PASSWORD=1` does it anyway, with that warning printed.
 
 On Windows, `SSH_BIN` points the script at a specific ssh binary, which matters when Git Bash's ssh
 cannot see the Windows ssh-agent:
