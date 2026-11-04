@@ -198,7 +198,9 @@ need it — but be clear about the exposure:
   can move. Keep it that way for as long as the token is published.
 - A caller can create and send sandbox invoices, propose actions, and refund **within** what PayPal says
   was captured. The refund cap is enforced against PayPal, not against anything a caller controls.
-- A caller can spend your Gemini quota through `/api/assist`. There is no rate limiting on it.
+- A caller can spend your Gemini quota through `/api/assist`, but not without limit: five requests per
+  client per minute and two hundred across the whole deployment per day, after which it answers `429`
+  with a `Retry-After`. The limits are in-memory and per instance, which is fine for one container.
 
 Once judging is over, rotate the token and take it out of `README.md`:
 

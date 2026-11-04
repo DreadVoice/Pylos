@@ -15,11 +15,18 @@ spring:
 
 server:
   port: 8080
+  forward-headers-strategy: framework
 
 pylos:
   api:
     token: ${PYLOS_API_TOKEN:}
     allowed-origins: ${PYLOS_ALLOWED_ORIGINS:chrome-extension://*}
+    assist:
+      enabled: ${PYLOS_ASSIST_RATE_LIMIT_ENABLED:true}
+      per-client-limit: ${PYLOS_ASSIST_PER_CLIENT_LIMIT:5}
+      per-client-window: ${PYLOS_ASSIST_PER_CLIENT_WINDOW:1m}
+      global-limit: ${PYLOS_ASSIST_GLOBAL_LIMIT:200}
+      global-window: ${PYLOS_ASSIST_GLOBAL_WINDOW:1d}
   llm:
     api-key: ${GEMINI_API_KEY:}
     model-name: ${GEMINI_MODEL:gemini-3.5-flash}

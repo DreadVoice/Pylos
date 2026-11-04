@@ -1,5 +1,8 @@
 package com.dreadvoice.pylos.config;
 
+import com.dreadvoice.pylos.api.AssistRateLimitFilter;
+import com.dreadvoice.pylos.api.AssistRateLimiter;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -29,7 +32,9 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http,
                                                       ApiSecurityProperties properties,
-                                                      CorsConfigurationSource corsConfigurationSource)
+                                                      CorsConfigurationSource corsConfigurationSource,
+                                                      AssistRateLimiter assistRateLimiter,
+                                                      ObjectMapper objectMapper)
             throws Exception {
         if (properties.token() == null || properties.token().isBlank()) {
             log.warn("No pylos.api.token configured; every /api request will be rejected with 401");
@@ -45,6 +50,8 @@ public class SecurityConfig {
                 .exceptionHandling(handling -> handling.authenticationEntryPoint(
                         new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .addFilterBefore(new ApiTokenFilter(properties), UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(new AssistRateLimitFilter(assistRateLimiter, objectMapper),
+                        ApiTokenFilter.class)
                 .authorizeHttpRequests(requests -> requests
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/webhooks/paypal").permitAll()
