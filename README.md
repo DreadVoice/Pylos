@@ -4,9 +4,10 @@ A Chrome MV3 extension and Spring Boot backend that turns seller conversations i
 refunds.
 Built for the PayPal AI Hackathon.
 
-Pylos reads the page a seller is looking at — a customer chat, an email thread, a dashboard — and
-proposes a PayPal action. It never sends anything on its own. Every money-moving action is proposed by
-the model, checked by deterministic code, edited by the seller if they want, and only then executed.
+Pylos reads the chat a seller is already working in — WhatsApp Web, Discord, a Messenger thread from a
+Marketplace listing — and proposes a PayPal action. It never sends anything on its own. Every
+money-moving action is proposed by the model, checked by deterministic code, edited by the seller if they
+want, and only then executed.
 
 ## Judge quick start
 
@@ -54,6 +55,21 @@ When a buyer pays, or a refund settles, PayPal posts the event to `/webhooks/pay
 no API token, because PayPal cannot send one; instead every event's signature is verified with PayPal
 before it is recorded, and the certificate url is checked to be a `paypal.com` host first. Verified
 events appear in the side panel and on the toolbar badge.
+
+## Where it reads
+
+| Surface | Adapter | How far it has been proven |
+|---|---|---|
+| The bundled demo pages | `demo` | Verified end to end against the live deployment |
+| WhatsApp Web | `whatsapp` | Parsing tested against a DOM fixture; see the demo video for a live run |
+| Discord | `discord` | Parsing tested against a DOM fixture, not exercised on the live site |
+| Messenger, including chats started from a Marketplace listing | `messenger` | Parsing tested against a DOM fixture, not exercised on the live site |
+
+Two things keep that list honest. An adapter only reads the DOM: the chat hosts are in
+`content_scripts.matches` so Pylos can read those pages, and none of them is in `host_permissions`, so
+the extension cannot make a network request to any of them. And when an adapter's selectors do not match,
+after a site redesign for instance, the side panel says nothing readable was found instead of sending a
+guess to the model.
 
 ## How it works
 

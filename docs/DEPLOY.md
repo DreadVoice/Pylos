@@ -99,26 +99,21 @@ money-moving endpoints.
 
 ## 8. Point the extension at it
 
-On your machine, edit `extension/public/manifest.json` and add the deployed host to both lists:
+On your machine, edit `extension/public/manifest.json` and add the deployed host to `host_permissions`
+and to the **first** `content_scripts` entry, the one that matches `/demo/*`:
 
 ```json
 "host_permissions": [
   "http://localhost:8080/*",
   "http://127.0.0.1:8080/*",
   "https://pylos.yourdomain.com/*"
-],
-"content_scripts": [
-  {
-    "matches": [
-      "http://localhost:8080/demo/*",
-      "http://127.0.0.1:8080/demo/*",
-      "https://pylos.yourdomain.com/demo/*"
-    ],
-    "js": ["content.js"],
-    "run_at": "document_idle"
-  }
 ]
 ```
+
+Leave the second `content_scripts` entry alone. That one lists the chat sites Pylos adapts — WhatsApp
+Web, Discord and Messenger — and those hosts deliberately stay out of `host_permissions`, so the
+extension can read those pages but cannot make requests to them. A test fails the build if a chat host
+ever appears in `host_permissions`.
 
 Then rebuild and zip for the submission:
 

@@ -52,16 +52,60 @@ describe("manifest", () => {
     expect(manifest.background.type).toBe("module");
   });
 
-  it("injects the content script only on demo pages of a known host", () => {
-    expect(manifest.content_scripts).toHaveLength(1);
+  it("injects the content script only on the demo pages and the chats it adapts", () => {
+    expect(manifest.content_scripts).toHaveLength(2);
 
-    const [script] = manifest.content_scripts;
-    expect(script.js).toEqual(["content.js"]);
+    const [demo, chat] = manifest.content_scripts;
+    expect(demo.js).toEqual(["content.js"]);
+    expect(chat.js).toEqual(["content.js"]);
     expect(viteConfig).toContain('content: "src/content/main.ts"');
-    for (const match of script.matches) {
+
+    for (const match of demo.matches) {
       expect(isSpecificHostPattern(match)).toBe(true);
       expect(match.endsWith("/demo/*")).toBe(true);
     }
+
+    const allowedChatHosts = [
+      "web.whatsapp.com",
+      "discord.com",
+      "www.messenger.com",
+      "www.facebook.com"
+    ];
+    for (const match of chat.matches) {
+      expect(isSpecificHostPattern(match)).toBe(true);
+      expect(match.startsWith("https://")).toBe(true);
+      expect(allowedChatHosts).toContain(new URL(match.replace("/*", "/")).hostname);
+    }
+  });
+
+  it("scopes the chat hosts to conversation paths, never a whole site", () => {
+    const [, chat] = manifest.content_scripts;
+    const wholeSite = chat.matches.filter((match) => {
+      const path = new URL(match.replace("/*", "/")).pathname;
+      return path === "/";
+    });
+
+    expect(wholeSite).toEqual(["https://web.whatsapp.com/*"]);
+  });
+
+  it("can read those chats but cannot make requests to them", () => {
+    const chatHosts = manifest.content_scripts[1].matches
+      .map((match) => new URL(match.replace("/*", "/")).hostname);
+
+    for (const host of chatHosts) {
+      for (const permission of manifest.host_permissions) {
+        expect(permission).not.toContain(host);
+      }
+    }
+  });
+
+  it("asks for network access only to its own backend", () => {
+    const hosts = manifest.host_permissions
+      .map((permission) => new URL(permission.replace("/*", "/")).hostname);
+
+    expect(hosts.every((host) => host === "localhost"
+      || host === "127.0.0.1"
+      || host.endsWith("sslip.io"))).toBe(true);
   });
 
   it("asks for only the permissions it uses", () => {

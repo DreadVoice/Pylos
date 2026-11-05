@@ -37,6 +37,18 @@
         "content.js"
       ],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://web.whatsapp.com/*",
+        "https://discord.com/channels/*",
+        "https://www.messenger.com/t/*",
+        "https://www.facebook.com/messages/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
     }
   ]
 }
