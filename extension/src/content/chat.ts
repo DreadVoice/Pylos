@@ -17,8 +17,15 @@ export function formatChat(messages: ChatMessage[]): string {
   return messages
     .slice(-MAX_MESSAGES)
     .filter((message) => message.text !== "")
-    .map((message) => (message.sender === "" ? message.text : `${message.sender}: ${message.text}`))
+    .map((message) => `${speaker(message)}${message.text}`)
     .join("\n");
+}
+
+function speaker(message: ChatMessage): string {
+  if (message.sender === "") {
+    return message.outgoing ? "The seller: " : "";
+  }
+  return message.outgoing ? `${message.sender} (the seller): ` : `${message.sender}: `;
 }
 
 export function chatHints(messages: ChatMessage[]): PageHints {
@@ -31,19 +38,36 @@ export function chatHints(messages: ChatMessage[]): PageHints {
 }
 
 export function readWhatsApp(document: Document): ChatMessage[] {
-  const rows = Array.from(document.querySelectorAll("div.message-in, div.message-out"));
+  const rows = Array.from(document.querySelectorAll("[data-pre-plain-text]"));
 
   return rows.map((row) => {
-    const outgoing = row.classList.contains("message-out");
-    const meta = row.querySelector("[data-pre-plain-text]")?.getAttribute("data-pre-plain-text") ?? "";
-    const spoken = row.querySelector("span.selectable-text");
+    const meta = row.getAttribute("data-pre-plain-text") ?? "";
+    const spoken = row.querySelector('span.selectable-text, [data-testid="selectable-text"]');
 
     return {
       sender: senderFromWhatsAppMeta(meta),
-      text: collapse(spoken?.textContent ?? row.textContent ?? ""),
-      outgoing
+      text: collapse(spoken?.textContent ?? ""),
+      outgoing: whatsAppOutgoing(row)
     };
   });
+}
+
+function whatsAppOutgoing(row: Element): boolean {
+  const legacy = row.closest("div.message-in, div.message-out");
+  if (legacy !== null) {
+    return legacy.classList.contains("message-out");
+  }
+
+  const identified = row.closest("[data-id]")?.getAttribute("data-id") ?? "";
+  if (identified.startsWith("true_")) {
+    return true;
+  }
+  if (identified.startsWith("false_")) {
+    return false;
+  }
+
+  const container = row.closest('div[role="row"]') ?? row.parentElement;
+  return container?.querySelector('[data-testid="msg-meta"] [aria-label]') != null;
 }
 
 export function readDiscord(document: Document): ChatMessage[] {

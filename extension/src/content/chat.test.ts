@@ -44,17 +44,80 @@ describe("WhatsApp Web", () => {
     const text = formatChat(readWhatsApp(document()));
 
     expect(text).toContain("Alex Mercer: Hi! Do you still have the black hoodies in large?");
-    expect(text).toContain("Hoodie Haven: Hey Alex, yes, large is back in stock. They are 25.00 USD each.");
     expect(text).toContain("Alex Mercer: Perfect, can I take two of them please?");
     expect(text).toContain("sb-l47vrz53533074@personal.example.com");
   });
 
-  it("knows which side the seller is on", () => {
+  it("knows which side the seller is on from the message id", () => {
     const messages = readWhatsApp(document());
 
     expect(messages[0]!.outgoing).toBe(false);
     expect(messages[1]!.outgoing).toBe(true);
     expect(messages[1]!.sender).toBe("Hoodie Haven");
+    expect(messages[5]!.outgoing).toBe(false);
+  });
+
+  it("leaves the bubble timestamp out of the message text", () => {
+    const messages = readWhatsApp(document());
+
+    for (const message of messages) {
+      expect(message.text).not.toMatch(/^\d{2}:\d{2}/);
+      expect(message.text).not.toContain("10:02");
+    }
+  });
+
+  it("still reads a build that uses the old message-in wrapper", () => {
+    const legacy = new JSDOM(`
+      <div class="message-in">
+        <div class="copyable-text" data-pre-plain-text="[10:02, 11/8/2026] Alex Mercer: ">
+          <span class="selectable-text"><span>Old markup still works</span></span>
+        </div>
+      </div>
+      <div class="message-out">
+        <div class="copyable-text" data-pre-plain-text="[10:04, 11/8/2026] Hoodie Haven: ">
+          <span class="selectable-text"><span>And so does the seller side</span></span>
+        </div>
+      </div>`, { url: WHATSAPP_URL }).window.document;
+
+    const messages = readWhatsApp(legacy);
+
+    expect(messages).toHaveLength(2);
+    expect(messages[0]!.outgoing).toBe(false);
+    expect(messages[1]!.outgoing).toBe(true);
+    expect(messages[1]!.sender).toBe("Hoodie Haven");
+  });
+
+  it("falls back to the delivery ticks when there is no message id", () => {
+    const noIds = new JSDOM(`
+      <div role="row">
+        <div>
+          <div class="copyable-text" data-pre-plain-text="[10:04, 11/8/2026] Hoodie Haven: ">
+            <span class="selectable-text"><span>Sent by the seller</span></span>
+          </div>
+          <div data-testid="msg-meta"><span aria-label=" Sent "></span></div>
+        </div>
+      </div>
+      <div role="row">
+        <div>
+          <div class="copyable-text" data-pre-plain-text="[10:05, 11/8/2026] Alex Mercer: ">
+            <span class="selectable-text"><span>Sent by the buyer</span></span>
+          </div>
+          <div data-testid="msg-meta"><span>10:05</span></div>
+        </div>
+      </div>`, { url: WHATSAPP_URL }).window.document;
+
+    const messages = readWhatsApp(noIds);
+
+    expect(messages[0]!.outgoing).toBe(true);
+    expect(messages[1]!.outgoing).toBe(false);
+  });
+
+  it("marks the seller's own messages so the model knows who is who", () => {
+    const text = formatChat(readWhatsApp(document()));
+
+    expect(text).toContain(
+      "Hoodie Haven (the seller): Hey Alex, yes, large is back in stock. They are 25.00 USD each.");
+    expect(text).not.toContain("Alex Mercer (the seller)");
   });
 
   it("passes a planted instruction through as ordinary text", () => {
@@ -85,6 +148,12 @@ describe("Discord", () => {
 
     expect(text).toContain("Alex Mercer: Hi! Do you still have the black hoodies in large?");
     expect(text).toContain("Hoodie Haven: Yes, large is back in stock. They are 25.00 USD each.");
+  });
+
+  it("labels nobody as the seller when the platform cannot tell", () => {
+    const text = formatChat(readDiscord(document()));
+
+    expect(text).not.toContain("(the seller)");
   });
 
   it("carries the sender forward across grouped messages", () => {

@@ -61,9 +61,9 @@ events appear in the side panel and on the toolbar badge.
 | Surface | Adapter | How far it has been proven |
 |---|---|---|
 | The bundled demo pages | `demo` | Verified end to end against the live deployment |
-| WhatsApp Web | `whatsapp` | Parsing tested against a DOM fixture; see the demo video for a live run |
-| Discord | `discord` | Parsing tested against a DOM fixture, not exercised on the live site |
-| Messenger, including chats started from a Marketplace listing | `messenger` | Parsing tested against a DOM fixture, not exercised on the live site |
+| WhatsApp Web | `whatsapp` | Verified on the live site: every message read with its sender and text. The fixture is built from real WhatsApp markup |
+| Discord | `discord` | Parsing tested against a hand-written fixture, not exercised on the live site |
+| Messenger, including chats started from a Marketplace listing | `messenger` | Parsing tested against a hand-written fixture, not exercised on the live site |
 
 Two things keep that list honest. An adapter only reads the DOM: the chat hosts are in
 `content_scripts.matches` so Pylos can read those pages, and none of them is in `host_permissions`, so
