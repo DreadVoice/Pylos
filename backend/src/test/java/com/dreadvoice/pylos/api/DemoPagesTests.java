@@ -36,7 +36,8 @@ class DemoPagesTests {
 
     @ParameterizedTest
     @ValueSource(strings = {"/demo", "/demo/", "/demo/index.html", "/demo/chat", "/demo/chat.html",
-            "/demo/order", "/demo/order.html"})
+            "/demo/order", "/demo/order.html",
+            "/demo/unpaid", "/demo/unpaid.html"})
     void demoPagesAreServedWithoutATokenSoJudgesCanJustOpenThem(String path) {
         ResponseEntity<String> response = restTemplate.getForEntity(path, String.class);
 
@@ -57,6 +58,7 @@ class DemoPagesTests {
     void theCleanUrlServesTheSamePageAsTheFile() {
         assertThat(body("/demo/chat")).isEqualTo(body("/demo/chat.html"));
         assertThat(body("/demo/order")).isEqualTo(body("/demo/order.html"));
+        assertThat(body("/demo/unpaid")).isEqualTo(body("/demo/unpaid.html"));
         assertThat(body("/demo")).isEqualTo(body("/demo/index.html"));
     }
 
@@ -105,7 +107,44 @@ class DemoPagesTests {
 
         assertThat(page).contains("href=\"/demo/chat\"");
         assertThat(page).contains("href=\"/demo/order\"");
+        assertThat(page).contains("href=\"/demo/unpaid\"");
         assertThat(page).contains("Load unpacked");
+    }
+
+    @Test
+    void theUnpaidPageCarriesTheInvoiceAReminderWouldChase() {
+        String page = body("/demo/unpaid");
+
+        assertThat(page).contains("INV2-Y4GW-3WJY-VK7C-ZQWQ");
+        assertThat(page).contains("USD 250.00");
+        assertThat(page).contains("sb-l47vrz53533074@personal.example.com");
+        assertThat(page).contains("nudge me");
+    }
+
+    @Test
+    void theUnpaidPageOffersNothingARefundCouldLatchOnTo() {
+        String page = body("/demo/unpaid");
+
+        assertThat(page).doesNotContain("SYSTEM OVERRIDE");
+        assertThat(page).doesNotContain("attacker@evil.example.com");
+    }
+
+    @Test
+    void theUnpaidPageIsStructuredForAnAdapterToRead() {
+        String page = body("/demo/unpaid");
+
+        assertThat(page).contains("<ul id=\"order\">");
+        assertThat(page).contains("<ul id=\"thread\">");
+        assertThat(page).contains("data-sender=\"seller\"");
+    }
+
+    @Test
+    void theUnpaidPageNeedsNoExternalResourcesOrScripts() {
+        String page = body("/demo/unpaid");
+
+        assertThat(page).doesNotContain("http://");
+        assertThat(page).doesNotContain("https://");
+        assertThat(page).doesNotContain("<script");
     }
 
     @Test

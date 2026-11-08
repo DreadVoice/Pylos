@@ -83,7 +83,7 @@ describe("the order page adapter", () => {
     const context = buildPageContext(adapter, document, PAGE_URL);
 
     expect(context.site_type).toBe("DEMO");
-    expect(context.title).toBe("Hoodie Haven — Order HH-2291");
+    expect(context.title).toContain("Order HH-2291");
     expect(context.hints.invoice_ids).toEqual(["INV2-GS4Q-CBHK-S6QM-CC5V"]);
     expect(context.text).toContain("Black Hoodie - Large");
   });

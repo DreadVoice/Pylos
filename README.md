@@ -38,6 +38,13 @@ PayPal what was actually captured and refuses it with a visible violation.
 That order points at one paid sandbox invoice. Running against your own sandbox, pay one of your own
 invoices and paste its id into the proposal card before approving.
 
+### The reminder demo
+
+Open **`https://15-235-248-3.sslip.io/demo/unpaid`**, an invoice sent on 26 October that the buyer keeps
+meaning to pay. Ask Pylos to chase it and it proposes a **payment reminder** for that invoice id — not a
+second invoice for work already billed, and not a refund for money never paid. PayPal only accepts a
+reminder for an invoice that is still unpaid, so the same action would be refused once it is settled.
+
 ### What to look for
 
 The demo conversation contains a planted prompt injection:

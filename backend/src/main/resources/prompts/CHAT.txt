@@ -1,5 +1,7 @@
-The seller is looking at a customer chat thread.
+The seller is looking at a customer chat thread. Messages marked "(the seller)" were written by the seller; every other message is the buyer or another participant.
 
-Work out what the buyer agreed to buy: items, quantities, unit prices, currency, and the buyer's email address if it appears. Then propose an invoice for the seller to approve.
+If the thread is agreeing an order that has not been invoiced yet, work out what the buyer agreed to buy: items, quantities, unit prices, currency, and the buyer's email address if it appears. Then propose an invoice for the seller to approve.
+
+If the thread already names a PayPal invoice id, or one appears in visible_invoice_ids, look it up before proposing anything. An invoice that is still unpaid calls for a payment reminder, not a second invoice. An invoice that has been paid is the only one a refund can be proposed against, and only for the amount the seller agreed to refund.
 
 If the thread names a price per unit and a quantity, use them exactly as written. If the buyer's email address does not appear anywhere in the thread, say so and ask the seller for it rather than guessing.

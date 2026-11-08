@@ -40,6 +40,15 @@ class PromptTemplatesTests {
         assertThat(templates.systemPrompt(siteType)).contains("Never invent amounts");
     }
 
+    @ParameterizedTest
+    @EnumSource(value = SiteType.class, names = {"CHAT", "DEMO"})
+    void theChatAndDemoPromptsKnowWhenAReminderIsTheRightAction(SiteType siteType) {
+        String prompt = templates.systemPrompt(siteType);
+
+        assertThat(prompt).containsIgnoringCase("reminder");
+        assertThat(prompt).containsIgnoringCase("unpaid");
+    }
+
     @Test
     void siteTypesGetDistinctGuidance() {
         assertThat(templates.systemPrompt(SiteType.CHAT))
