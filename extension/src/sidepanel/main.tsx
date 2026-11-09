@@ -125,7 +125,8 @@ function SidePanel() {
       {page.state === "none" && <p className="lede">{page.reason}</p>}
       {page.state === "read" && (
         <p className="lede">
-          <b>{page.context.site_type}</b> · {page.context.title}
+          <span className="chip">{page.context.site_type}</span>
+          <span>{page.context.title}</span>
         </p>
       )}
 
@@ -152,15 +153,15 @@ function SidePanel() {
         </button>
       </p>
 
-      {asking && <p className="status">Reading the conversation. This can take a minute.</p>}
+      {asking && <p className="status">Reading the conversation…</p>}
       {askError !== null && <p className="status bad">{askError}</p>}
       {reply !== null && <p className="status">{reply}</p>}
-      {truncated && <p className="hint">That conversation was long, so only the first part was read.</p>}
+      {truncated && <p className="hint">Only the first part of this page was read.</p>}
 
       <Notifications view={notifications} now={now} busy={marking} onMarkRead={() => void markRead()} />
 
       {actions.length === 0 && !asking && (
-        <p className="hint">No proposals yet. Ask Pylos to read this page.</p>
+        <p className="hint">Nothing proposed yet.</p>
       )}
 
       {actions.map((action) => (
@@ -172,10 +173,6 @@ function SidePanel() {
         />
       ))}
 
-      <p className="hint">
-        Pylos proposes; you approve. Every amount is checked by the backend before anything is sent, and
-        nothing on a page can approve an action on your behalf.
-      </p>
     </main>
   );
 }

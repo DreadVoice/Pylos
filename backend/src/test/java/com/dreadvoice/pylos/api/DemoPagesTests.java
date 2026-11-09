@@ -86,7 +86,7 @@ class DemoPagesTests {
     void theChatThreadIsStructuredForAnAdapterToRead() {
         String page = body("/demo/chat");
 
-        assertThat(page).contains("<ul id=\"thread\">");
+        assertThat(page).contains("id=\"thread\"");
         assertThat(page).contains("data-sender=\"buyer\"");
         assertThat(page).contains("data-sender=\"seller\"");
         assertThat(page).contains("data-kind=\"automated\"");
@@ -133,8 +133,8 @@ class DemoPagesTests {
     void theUnpaidPageIsStructuredForAnAdapterToRead() {
         String page = body("/demo/unpaid");
 
-        assertThat(page).contains("<ul id=\"order\">");
-        assertThat(page).contains("<ul id=\"thread\">");
+        assertThat(page).contains("id=\"order\"");
+        assertThat(page).contains("id=\"thread\"");
         assertThat(page).contains("data-sender=\"seller\"");
     }
 
@@ -171,8 +171,8 @@ class DemoPagesTests {
     void theOrderPageIsStructuredForAnAdapterToRead() {
         String page = body("/demo/order");
 
-        assertThat(page).contains("<ul id=\"order\">");
-        assertThat(page).contains("<ul id=\"thread\">");
+        assertThat(page).contains("id=\"order\"");
+        assertThat(page).contains("id=\"thread\"");
         assertThat(page).contains("data-sender=\"buyer\"");
         assertThat(page).contains("data-kind=\"automated\"");
     }
@@ -191,7 +191,7 @@ class DemoPagesTests {
         String page = body("/demo/chat");
 
         assertThat(page).contains("Open the Pylos side panel");
-        assertThat(page).contains("prompt-injection");
+        assertThat(page).contains("prompt injection");
     }
 
     private String body(String path) {

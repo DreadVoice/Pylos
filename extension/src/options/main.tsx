@@ -32,12 +32,12 @@ function Options() {
     setBusy(true);
     setStatus(null);
     await saveSettings(settings);
-    const result = await callApi({ method: "GET", path: "/api/actions" });
+    const result = await callApi({ method: "GET", path: "/api/actions?status=PROPOSED" });
     setBusy(false);
 
     if (result.ok) {
       const count = Array.isArray(result.data) ? result.data.length : 0;
-      setStatus({ tone: "good", text: `Connected. ${count} action(s) pending.` });
+      setStatus({ tone: "good", text: `Connected. ${count} awaiting approval.` });
     } else {
       setStatus({ tone: "bad", text: result.error });
     }
@@ -45,8 +45,8 @@ function Options() {
 
   return (
     <main>
-      <h1>Pylos settings</h1>
-      <p className="lede">Point the extension at your Pylos backend.</p>
+      <h1>Pylos</h1>
+      <p className="lede"><span className="chip">Settings</span></p>
 
       <label>
         <span>Backend URL</span>
@@ -67,22 +67,25 @@ function Options() {
         />
       </label>
 
-      <button onClick={() => void save()} disabled={problem !== null}>
-        Save
-      </button>
-      <button onClick={() => void testConnection()} disabled={problem !== null || busy}>
-        {busy ? "Testing…" : "Test connection"}
-      </button>
+      <p className="actions">
+        <button onClick={() => void save()} disabled={problem !== null}>
+          Save
+        </button>
+        <button
+          className="ghost"
+          onClick={() => void testConnection()}
+          disabled={problem !== null || busy}
+        >
+          {busy ? "Testing…" : "Test connection"}
+        </button>
+      </p>
 
       {problem !== null && <p className="status bad">{problem}</p>}
       {problem === null && status !== null && (
         <p className={`status ${status.tone}`}>{status.text}</p>
       )}
 
-      <p className="hint">
-        The token is the value the backend was started with as PYLOS_API_TOKEN. It is stored only in this
-        browser and is never sent anywhere except your backend.
-      </p>
+      <p className="hint">Stored in this browser only.</p>
     </main>
   );
 }

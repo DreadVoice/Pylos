@@ -33,7 +33,7 @@ describe("readThread against the real demo page", () => {
     const text = readThread(demoDocument());
 
     expect(text).toContain("Alex Mercer: Hi! Do you still have the black hoodies in large?");
-    expect(text).toContain("Hoodie Haven: Hey Alex — yes, large is back in stock. They are 25.00 USD each.");
+    expect(text).toContain("Hoodie Haven: Hey Alex, yes, large is back in stock. They are 25.00 USD each.");
     expect(text).toContain("Alex Mercer: Perfect, can I take two of them please?");
     expect(text).toContain("sb-l47vrz53533074@personal.example.com");
   });
@@ -76,7 +76,7 @@ describe("buildPageContext", () => {
 
     expect(context.site_type).toBe("DEMO");
     expect(context.url).toBe(PAGE_URL);
-    expect(context.title).toBe("Hoodie Haven — Customer chat");
+    expect(context.title).toBe("Hoodie Haven, customer chat");
     expect(context.text).toContain("25.00 USD each");
     expect(context.hints).toEqual({ invoice_ids: [], dispute_ids: [] });
   });

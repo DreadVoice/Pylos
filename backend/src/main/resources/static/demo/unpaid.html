@@ -1,151 +1,7 @@
 <!doctype html>
-<html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Hoodie Haven - Invoice 0014 still unpaid</title>
-<style>
-body {
-    margin: 0;
-    background: #eceff1;
-    color: #1f2933;
-    font: 16px/1.5 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-}
-
-.banner {
-    margin: 0;
-    padding: 14px 20px;
-    background: #10263a;
-    color: #e8f1fa;
-    font-size: 14px;
-}
-
-main {
-    max-width: 720px;
-    margin: 24px auto 48px;
-    padding: 0 16px;
-}
-
-.window {
-    background: #fff;
-    border: 1px solid #dde3ea;
-    border-radius: 12px;
-    overflow: hidden;
-}
-
-.window > header {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 10px;
-    padding: 14px 18px;
-    border-bottom: 1px solid #dde3ea;
-}
-
-.window > header h1 {
-    margin: 0;
-    font-size: 18px;
-}
-
-.overdue {
-    padding: 2px 9px;
-    border-radius: 999px;
-    background: #fde9d9;
-    border: 1px solid #e8a33d;
-    color: #8a4b05;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-#order {
-    margin: 0;
-    padding: 6px 18px 14px;
-    list-style: none;
-    font-size: 14px;
-}
-
-#order li {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px 10px;
-    padding: 9px 0;
-    border-bottom: 1px solid #f0f3f6;
-}
-
-#order li:last-child {
-    border-bottom: 0;
-}
-
-#order b {
-    min-width: 92px;
-    color: #6b7a8d;
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: .04em;
-}
-
-#order .money {
-    font-variant-numeric: tabular-nums;
-    font-weight: 600;
-}
-
-h2 {
-    margin: 26px 0 10px;
-    font-size: 14px;
-    color: #6b7a8d;
-    text-transform: uppercase;
-    letter-spacing: .04em;
-}
-
-#thread {
-    margin: 0;
-    padding: 18px;
-    background: #f7f9fb;
-    border: 1px solid #dde3ea;
-    border-radius: 12px;
-    list-style: none;
-}
-
-#thread li {
-    max-width: 82%;
-    margin-bottom: 12px;
-    padding: 10px 14px;
-    background: #fff;
-    border: 1px solid #dde3ea;
-    border-radius: 12px;
-}
-
-#thread li:last-child {
-    margin-bottom: 0;
-}
-
-#thread [data-sender="seller"] {
-    margin-left: auto;
-    background: #d9f2d0;
-    border-color: #bfe3b2;
-}
-
-#thread b {
-    display: block;
-    margin-bottom: 3px;
-    color: #6b7a8d;
-    font-size: 12px;
-}
-
-time {
-    display: block;
-    margin-top: 4px;
-    color: #6b7a8d;
-    font-size: 11px;
-}
-
-.note {
-    margin-top: 18px;
-    color: #6b7a8d;
-    font-size: 13px;
-}
-</style>
+<title>Hoodie Haven, invoice 0014 unpaid</title>
+<link rel="stylesheet" href="demo.css">
 </head>
 <body>
 
@@ -157,7 +13,7 @@ time {
 
     <header>
         <h1>Invoice 0014</h1>
-        <span class="overdue">Unpaid, 13 days</span>
+        <span class="tag overdue">Unpaid, 13 days</span>
     </header>
 
     <ul id="order">
@@ -171,7 +27,7 @@ time {
 
 <h2>Messages about this invoice</h2>
 
-<ul id="thread">
+<ul id="thread" class="boxed">
     <li data-sender="seller">
         <b>Hoodie Haven</b>Hi Alex, the logo files are all delivered and invoice 0014 went over on the
         26th. Let me know if anything is missing.
@@ -193,9 +49,8 @@ time {
     </li>
 </ul>
 
-<p class="note">Nothing has been paid yet, so a refund is not possible here and an invoice already
-    exists. The useful action is a payment reminder, which PayPal will only accept for an invoice that
-    is still unpaid. As with every other action, Pylos proposes it and the seller approves it.</p>
+<!-- <p class="note">Nothing has been paid, so a refund is not possible and an invoice already exists. The
+    action that fits is a payment reminder, which PayPal accepts only while an invoice is unpaid.</p> -->
 </main>
 
 </body>
