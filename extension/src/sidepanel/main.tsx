@@ -160,7 +160,7 @@ function SidePanel() {
       <Notifications view={notifications} now={now} busy={marking} onMarkRead={() => void markRead()} />
 
       {actions.length === 0 && !asking && (
-        <p className="hint">No proposals yet. Ask Pylos to invoice the conversation.</p>
+        <p className="hint">No proposals yet. Ask Pylos to read this page.</p>
       )}
 
       {actions.map((action) => (

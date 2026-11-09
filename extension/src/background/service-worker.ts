@@ -153,10 +153,14 @@ function describeFailure(status: number, data: unknown): string {
 }
 
 async function reportConnection(): Promise<void> {
-  const result = await request({ kind: "pylos.api", method: "GET", path: "/api/actions" });
+  const result = await request({
+    kind: "pylos.api",
+    method: "GET",
+    path: "/api/actions?status=PROPOSED"
+  });
   if (result.ok) {
     const count = Array.isArray(result.data) ? result.data.length : 0;
-    console.info(`Pylos: connected to the backend, ${count} action(s) pending`);
+    console.info(`Pylos: connected to the backend, ${count} proposal(s) awaiting approval`);
   } else {
     console.warn(`Pylos: not connected — ${result.error}`);
   }

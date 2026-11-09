@@ -18,6 +18,7 @@ const MAX_BADGE = 9;
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
+const MONTH = 30 * DAY;
 
 export function emptyNotifications(): NotificationsView {
   return { notifications: [], unread_count: 0 };
@@ -71,7 +72,10 @@ export function timeAgo(occurredAt: string, now: number): string {
   if (elapsed < DAY) {
     return `${Math.floor(elapsed / HOUR)}h ago`;
   }
-  return `${Math.floor(elapsed / DAY)}d ago`;
+  if (elapsed < MONTH) {
+    return `${Math.floor(elapsed / DAY)}d ago`;
+  }
+  return new Date(at).toISOString().slice(0, 10);
 }
 
 function isNotification(value: unknown): value is NotificationView {

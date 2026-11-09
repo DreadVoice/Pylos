@@ -116,7 +116,13 @@ describe("timeAgo", () => {
     expect(timeAgo("", now)).toBe("");
   });
 
-  it("handles the simulator's very old timestamps without breaking", () => {
-    expect(timeAgo("2015-09-25T23:14:14Z", now)).toMatch(/^\d+d ago$/);
+  it("shows a date instead of a useless day count once something is old", () => {
+    expect(timeAgo("2015-09-25T23:14:14Z", now)).toBe("2015-09-25");
+    expect(timeAgo("2026-08-01T12:00:00Z", now)).toBe("2026-08-01");
+  });
+
+  it("still counts days up to a month", () => {
+    expect(timeAgo("2026-10-20T12:00:00Z", now)).toBe("15d ago");
+    expect(timeAgo("2026-10-06T12:00:00Z", now)).toBe("29d ago");
   });
 });
