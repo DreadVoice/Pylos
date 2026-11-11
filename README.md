@@ -13,7 +13,7 @@ Nothing happens automatically. The model proposes an action, the backend checks 
 The hosted demo only requires Chrome and the extension. There's no need to set up a local backend.
 
 1. Open the [demo chat](https://15-235-248-3.sslip.io/demo/chat).
-2. Download the release zip and extract it. Open `chrome://extensions`, enable Developer mode, select Load unpacked and choose the `dist` folder.
+2. Download the release zip and extract it. Open `chrome://extensions`, enable Developer mode, select Load unpacked and choose the extracted folder, the one holding `manifest.json`.
 3. Find the Pylos card and open **Details → Extension options**. Enter the following:
 
    - Backend URL: `https://15-235-248-3.sslip.io`
