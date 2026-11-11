@@ -25,3 +25,11 @@ buildNumber.properties
 /extension/node_modules/
 /extension/dist/
 /extension/pylos-extension.zip
+
+# Recordings and exports — never commit
+*.mp4
+*.mkv
+*.mov
+*.webm
+*.avi
+*.wav
