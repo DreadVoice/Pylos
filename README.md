@@ -10,7 +10,16 @@ Nothing happens automatically. The model proposes an action, the backend checks 
 
 ## Judge quick start
 
-Provided in the hackathon submission.
+The hosted demo only requires Chrome and the extension. There's no need to set up a local backend.
+
+1. Open the [demo chat](https://15-235-248-3.sslip.io/demo/chat).
+2. Download the release zip and extract it. Open `chrome://extensions`, enable Developer mode, select Load unpacked and choose the extracted folder, the one holding `manifest.json`.
+3. Find the Pylos card and open **Details → Extension options**. Enter the Backend URL and API token credentials.
+4. Click **Test connection**. It should show *Connected*.
+5. Reload the demo chat tab, then click the Pylos toolbar icon to open the side panel.
+6. Click **Ask Pylos**. The extension reads the conversation and generates an invoice proposal. This can take up to a minute.
+7. Change the unit amount on the proposal card and click **Approve and send**.
+8. Sign in at [sandbox.paypal.com](https://sandbox.paypal.com) using the sandbox buyer account to see the invoice with your edited amount.
 
 ### The refund demo
 
